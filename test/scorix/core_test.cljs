@@ -5,39 +5,39 @@
 (deftest basic
   (is (= (scorix/basic-points
           ["xxxxx" "xxxx" "xxx" "x"])
-         [["High card points" 0]
-          ["A and T count is 0" -0.5]]))
+         [[0 :high-card-points]
+          [-0.5 :A-T-count 0]]))
   (is (= (scorix/basic-points
           ["AT9xx" "xxxx" "xxx" "x"])
-         [["High card points" 4]]))
+         [[4 :high-card-points]]))
   (is (= (scorix/basic-points
           ["A" "xxxx" "xxxx" "xxxx"])
-         [["High card points" 4]
-          ["A and T count is 1" -0.25]
-          ["Blank A/K/Q" -1]]))
+         [[4 :high-card-points]
+          [-0.25 :A-T-count 1]
+          [-1 :blank "A"]]))
   (is (= (scorix/basic-points
           ["QJ" "xxxx" "xxxx" "xxx"])
-         [["High card points" 3]
-          ["A and T count is 0" -0.5]
-          ["Blank QJ" -1]]))
+         [[3 :high-card-points]
+          [-0.5 :A-T-count 0]
+          [-1 :blank "QJ"]]))
   (is (= (scorix/basic-points
           ["T9" "xxxx" "xxxx" "xxx"])
-         [["High card points" 0]
-          ["A and T count is 1" -0.25]
-          ["Blank AKJ/AQJ/AQ/AT/KT/Qx/Jx/Tx" -0.25]]))
+         [[0 :high-card-points]
+          [-0.25 :A-T-count 1]
+          [-0.25 :blank "T9"]]))
   (is (= (scorix/basic-points
           ["AKxxx" "Qxxx" "AJ" "JT"])
-         [["High card points" 15]
-          ["A and T count is 3" 0.25]
-          ["Blank AK/AKQ/AJ/KQ/KQJ/KJ/QT/JT" -0.5]
-          ["Blank AK/AKQ/AJ/KQ/KQJ/KJ/QT/JT" -0.5]])))
+         [[15 :high-card-points]
+          [0.25 :A-T-count 3]
+          [-0.5 :blank "AJ"]
+          [-0.5 :blank "JT"]])))
 
-(deftest okay-suit
-  (is (not (scorix/okay-suit? "xxxx")))
-  (is (not (scorix/okay-suit? "KTxxx")))
-  (is (scorix/okay-suit? "Axxx"))
-  (is (scorix/okay-suit? "KJxx"))
-  (is (scorix/okay-suit? "QJTx")))
+(deftest reasonable-suit
+  (is (not (scorix/reasonable-suit? "xxxx")))
+  (is (not (scorix/reasonable-suit? "KTxxx")))
+  (is (scorix/reasonable-suit? "Axxx"))
+  (is (scorix/reasonable-suit? "KJxx"))
+  (is (scorix/reasonable-suit? "QJTx")))
 
 (deftest strong-suit
   (is (not (scorix/strong-suit? "xxxx")))
@@ -47,199 +47,194 @@
   (is (scorix/strong-suit? "KQJTxx")))
 
 (deftest ground-length
-  (is (= (scorix/ground-length-points "xxxxx")
-         [["Weak five card suit" 0.5]]))
-  (is (= (scorix/ground-length-points "KTxxx")
-         [["Weak five card suit" 0.5]]))
-  (is (= (scorix/ground-length-points "Axxx")
-         [["Okay or strong four card suit" 0.5]]))
-  (is (= (scorix/ground-length-points "AKQJ")
-         [["Okay or strong four card suit" 0.5]]))
-  (is (= (scorix/ground-length-points "Kxxxxx")
-         [["Weak six card suit" 1]]))
-  (is (= (scorix/ground-length-points "xxxxxx")
-         [["Weak six card suit" 1]]))
-  (is (= (scorix/ground-length-points "Axxxx")
-         [["Okay five card suit" 1]]))
-  (is (= (scorix/ground-length-points "KJxxx")
-         [["Okay five card suit" 1]]))
-  (is (= (scorix/ground-length-points "xxxxxxx")
-         [["Weak or okay seven card suit or longer" 2]]))
-  (is (= (scorix/ground-length-points "Axxxxxx")
-         [["Weak or okay seven card suit or longer" 2]]))
-  (is (= (scorix/ground-length-points "Axxxxx")
-         [["Okay six card suit" 2]]))
-  (is (= (scorix/ground-length-points "QJTxxx")
-         [["Okay six card suit" 2]]))
-  (is (= (scorix/ground-length-points "AKJxx")
-         [["Strong five card suit" 1.5]]))
-  (is (= (scorix/ground-length-points "KQJTx")
-         [["Strong five card suit" 1.5]]))
-  (is (= (scorix/ground-length-points "KQJTxx")
-         [["Strong six card suit or longer" 3]]))
-  (is (= (scorix/ground-length-points "AKQJTxx")
-         [["Strong six card suit or longer" 3]]))
-  (is (empty? (scorix/ground-length-points "xxxx"))))
+  (is (= (scorix/ground-length-points "xxxxx" nil)
+         [[0.5 :length "xxxxx"]]))
+  (is (= (scorix/ground-length-points "KTxxx" nil)
+         [[0.5 :length "KTxxx"]]))
+  (is (= (scorix/ground-length-points "Axxx" nil)
+         [[0.5 :length "Axxx"]]))
+  (is (= (scorix/ground-length-points "AKQJ" nil)
+         [[0.5 :length "AKQJ"]]))
+  (is (= (scorix/ground-length-points "Kxxxxx" nil)
+         [[1 :length "Kxxxxx"]]))
+  (is (= (scorix/ground-length-points "xxxxxx" nil)
+         [[1 :length "xxxxxx"]]))
+  (is (= (scorix/ground-length-points "Axxxx" nil)
+         [[1 :length "Axxxx"]]))
+  (is (= (scorix/ground-length-points "KJxxx" nil)
+         [[1 :length "KJxxx"]]))
+  (is (= (scorix/ground-length-points "xxxxxxx" nil)
+         [[2 :length "xxxxxxx"]]))
+  (is (= (scorix/ground-length-points "Axxxxxx" nil)
+         [[2 :length "Axxxxxx"]]))
+  (is (= (scorix/ground-length-points "Axxxxx" nil)
+         [[2 :length "Axxxxx"]]))
+  (is (= (scorix/ground-length-points "QJTxxx" nil)
+         [[2 :length "QJTxxx"]]))
+  (is (= (scorix/ground-length-points "AKJxx" nil)
+         [[1.5 :length "AKJxx"]]))
+  (is (= (scorix/ground-length-points "KQJTx" nil)
+         [[1.5 :length "KQJTx"]]))
+  (is (= (scorix/ground-length-points "KQJTxx" nil)
+         [[3 :length "KQJTxx"]]))
+  (is (= (scorix/ground-length-points "AKQJTxx" nil)
+         [[3 :length "AKQJTxx"]]))
+  (is (empty? (scorix/ground-length-points "xxxx" nil))))
 
 (deftest ground-honors
-  (is (= (scorix/ground-honor-points "AKJTx")
-         [["Suit with AKJ" 0.25]]))
-  (is (= (scorix/ground-honor-points "AKJ")
-         [["Suit with AKJ" 0.25]]))
-  (is (empty? (scorix/ground-honor-points "AKQ"))))
+  (is (= (scorix/ground-AQJ-points ["AQJTx" "AQJ" "xxxx" "x"])
+         [[0.5 :AQJ]]))
+  (is (= (scorix/ground-AQJ-points ["AQJ" "xxxxx" "xxxxx" ""])
+         [[0.25 :AQJ]])))
 
 (deftest ground-partner-suit
-  (is (empty? (scorix/ground-partner-suit-points "xx")))
-  (is (= (scorix/ground-partner-suit-points "")
-         [["Chikane in partner color" -2]]))
-  (is (= (scorix/ground-partner-suit-points "x")
-         [["Single in partner color" -1]]))
-  (is (= (scorix/ground-partner-suit-points "J")
-         [["Honor in partner color" 0.5]
-          ["Single in partner color" -1]]))
-  (is (= (scorix/ground-partner-suit-points "Ax")
-         [["Honor in partner color" 0.5]]))
-  (is (= (scorix/ground-partner-suit-points "AKJ")
-         [["Two or more honors in partner color" 1]])))
+  (is (empty? (scorix/ground-partner-suit-points "xx" :partner)))
+  (is (= (scorix/ground-partner-suit-points "" :partner)
+         [[-2 :short-in-partner-suit ""]]))
+  (is (= (scorix/ground-partner-suit-points "x" :partner)
+         [[-1 :short-in-partner-suit "x"]]))
+  (is (= (scorix/ground-partner-suit-points "J" :partner)
+         [[0.5 :partner-suit-honors 1]
+          [-1 :short-in-partner-suit "J"]]))
+  (is (= (scorix/ground-partner-suit-points "Ax" :partner)
+         [[0.5 :partner-suit-honors 1]]))
+  (is (= (scorix/ground-partner-suit-points "AKJ" :partner)
+         [[1 :partner-suit-honors 3]])))
 
 (deftest ground-right-opponent-suit
-  (is (empty? (scorix/ground-right-opponent-suit-points "")))
-  (is (= (scorix/ground-right-opponent-suit-points "Kxx")
-         [["Kx/Qxx/AJx/AKT/AQ in right opponent color" 0.5]]))
-  (is (= (scorix/ground-right-opponent-suit-points "KQ9")
-         [["KQx/KJx in right opponent color" 1]]))
-  (is (= (scorix/ground-right-opponent-suit-points "KQxx")
-         [["KQx/KJx in right opponent color" 1]
-          #_["Non-solid length in opponent color" -0.5]]))
-  (is (= (scorix/ground-right-opponent-suit-points "Axxx")
-         [#_["Non-solid length in opponent color" -0.5]]))
-  (is (= (scorix/ground-right-opponent-suit-points "xxxxxx")
-         [["Non-solid length in opponent color" -1]])))
+  (is (empty? (scorix/ground-right-opponent-suit-points "" :right)))
+  (is (= (scorix/ground-right-opponent-suit-points "Kxx" :right)
+         [[0.5 :gap-in-right-suit "Kx"]]))
+  (is (= (scorix/ground-right-opponent-suit-points "KQ9" :right)
+         [[1 :gap-in-right-suit "KQ9"]]))
+  (is (= (scorix/ground-right-opponent-suit-points "KQxx" :right)
+         [[1 :gap-in-right-suit "KQx"]
+          #_[-0.5 :length-in-opponent-suit]]))
+  (is (= (scorix/ground-right-opponent-suit-points "Axxx" :right)
+         [#_[-0.5 :length-in-opponent-suit]]))
+  (is (= (scorix/ground-right-opponent-suit-points "xxxxxx" :right)
+         [[-1 :length-in-opponent-suit "xxxxxx"]])))
 
 (deftest ground-left-opponent-suit
-  (is (empty? (scorix/ground-left-opponent-suit-points "")))
-  (is (= (scorix/ground-left-opponent-suit-points "Kxx")
-         [["Kx/Qxx/AJx/AKT/AQ in left opponent color" -0.5]]))
-  (is (= (scorix/ground-left-opponent-suit-points "KQx")
-         [["KQx/KJx in left opponent color" -1]]))
-  (is (= (scorix/ground-left-opponent-suit-points "KQxx")
-         [["KQx/KJx in left opponent color" -1]
+  (is (empty? (scorix/ground-left-opponent-suit-points "" :left)))
+  (is (= (scorix/ground-left-opponent-suit-points "Kxx" :left)
+         [[-0.5 :gap-in-left-suit "Kx"]]))
+  (is (= (scorix/ground-left-opponent-suit-points "KQx" :left)
+         [[-1 :gap-in-left-suit "KQx"]]))
+  (is (= (scorix/ground-left-opponent-suit-points "KQxx" :left)
+         [[-1 :gap-in-left-suit "KQx"]
           #_["Non-solid length in opponent color" -0.5]]))
-  (is (= (scorix/ground-left-opponent-suit-points "Axxx")
+  (is (= (scorix/ground-left-opponent-suit-points "Axxx" :left)
          [#_["Non-solid length in opponent color" -0.5]]))
-  (is (= (scorix/ground-left-opponent-suit-points "AKQxx")
+  (is (= (scorix/ground-left-opponent-suit-points "AKQxx" :left)
          [#_["Non-solid length in opponent color" -1]])))
 
 (deftest ground
   (is (= (scorix/ground-points
           ["Axx" "Kxx" "xxxx" "xxx"]
           [ nil   nil   nil    nil])
-         [["High card points" 7]
-          ["A and T count is 1" -0.25]]))
+         [[7 :high-card-points]
+          [-0.25 :A-T-count 1]]))
   (is (= (scorix/ground-points
           ["Axxx" "Kxx" "xxxx" "xx"]
           [ nil    nil   nil    nil])
-         [["High card points" 7]
-          ["A and T count is 1" -0.25]
-          ["Okay or strong four card suit" 0.5]]))
+         [[7 :high-card-points]
+          [-0.25 :A-T-count 1]
+          [0.5 :length "Axxx"]]))
   (is (= (scorix/ground-points
           ["Axxx" "Kxx" "xxxx" "xx"]
           [ nil   :left  nil    nil])
-         [["High card points" 7]
-          ["A and T count is 1" -0.25]
-          ["Okay or strong four card suit" 0.5]
-          ["Kx/Qxx/AJx/AKT/AQ in left opponent color" -0.5]]))
+         [[7 :high-card-points]
+          [-0.25 :A-T-count 1]
+          [0.5 :length "Axxx"]
+          [-0.5 :gap-in-left-suit "Kx"]]))
   (is (= (scorix/ground-points
           ["Axxx" "Kxx"    "xxxx" "xx"]
           [ nil   :partner  nil    nil])
-         [["High card points" 7]
-          ["A and T count is 1" -0.25]
-          ["Okay or strong four card suit" 0.5]
-          ["Honor in partner color" 0.5]]))
+         [[7 :high-card-points]
+          [-0.25 :A-T-count 1]
+          [0.5 :length "Axxx"]
+          [0.5 :partner-suit-honors 1]]))
   (is (= (scorix/ground-points
           ["Axxx" "Kxx"  "xxxx" "xx"]
           [ nil   :right  nil    nil])
-         [["High card points" 7]
-          ["A and T count is 1" -0.25]
-          ["Okay or strong four card suit" 0.5]
-          ["Kx/Qxx/AJx/AKT/AQ in right opponent color" 0.5]]))
+         [[7 :high-card-points]
+          [-0.25 :A-T-count 1]
+          [0.5 :length "Axxx"]
+          [0.5 :gap-in-right-suit "Kx"]]))
   (is (= (scorix/ground-points
           ["AK"       "x" "KQTxx" "AJ9xx"]
           [:partner   nil  nil     nil])
-         [["High card points" 17]
-          ["A and T count is 3" 0.25]
-          ["Blank AK/AKQ/AJ/KQ/KQJ/KJ/QT/JT" -0.5]
-          ["Two or more honors in partner color" 1]
-          ["Okay five card suit" 1]
-          ["Okay five card suit" 1]])))
+         [[17 :high-card-points]
+          [0.25 :A-T-count 3]
+          [-0.5 :blank "AK"]
+          [1 :length "KQTxx"]
+          [1 :length "AJ9xx"]
+          [1 :partner-suit-honors 2]])))
 
 (deftest no-trump
   (is (= (scorix/no-trump-points
           ["ATxx" "QJT8x" "9xx" "xx"]
           [ nil    nil     nil   nil])
-         [["High card points" 7]
-          ["A and T count is 3" 0.25]
-          ["Okay or strong four card suit" 0.5]
-          ["Okay five card suit" 1]
-          ["T and 9 count in NT is 3" 0.25]
-          ["QJxx in NT" 0.25]]))
+         [[7 :high-card-points]
+          [0.25 :A-T-count 3]
+          [0.5 :length "ATxx"]
+          [1 :length "QJT8x"]
+          [0.25 :T-9-count-in-SA 3]]))
   (is (= (scorix/no-trump-points
           ["ATx"  "QJT9x" "JTxx"  "xx"]
           [:right :left   :right  :partner])
-         [["High card points" 8]
-          ["A and T count is 4" 0.5]
-          ["Okay five card suit" 1]
-          ["Kx/Qxx/AJx/AKT/AQ in left opponent color" -0.5]
-          ["T and 9 count in NT is 4" 0.5]
-          ["QJxx in NT" 0.25]
-          ["QJT9 or QJT8 in opponent color in NT" 0.5]
-          ["JTxx or J9xx in right opponent color in NT" 0.25]]))
+         [[8 :high-card-points]
+          [0.5 :A-T-count 4]
+          [1 :length "QJT9x"]
+          [-0.5 :gap-in-left-suit "QJT"]
+          [0.5 :T-9-count-in-SA 4]
+          [0.5 :QJT9-or-QJT9-in-opponent-suit-in-NT "QJT9"]
+          [0.25 :JTxx-or-J9xx-in-right-opponent-suit-in-NT "JTxx"]]))
   (is (= (scorix/no-trump-points
           ["K"      "QT"     "QJ98xx"  "AQ8x"]
           [:partner :partner  nil       nil])
-         [["High card points" 14]
-          ["Blank A/K/Q" -1]
-          ["Blank AK/AKQ/AJ/KQ/KQJ/KJ/QT/JT" -0.5]
-          ["Honor in partner color" 0.5]
-          ["Single in partner color" -1]
-          ["Honor in partner color" 0.5]
-          ["Weak six card suit" 1]
-          ["Okay or strong four card suit" 0.5]
-          ["QJxx in NT" 0.25]]))
+         [[14 :high-card-points]
+          [-1 :blank "K"]
+          [-0.5 :blank "QT"]
+          [1 :length "QJ98xx"]
+          [0.5 :length "AQ8x"]
+          [0.5 :partner-suit-honors 1]
+          [-1 :short-in-partner-suit "K"]
+          [0.5 :partner-suit-honors 1]]))
   (is (= (scorix/no-trump-points
           ["AJxx"     "AKJx"  "Kx"     "xxx"]
           [ nil        nil    :partner  nil])
-         [["High card points" 16]
-          ["Okay or strong four card suit" 0.5]
-          ["Okay or strong four card suit" 0.5]
-          ["Suit with AKJ" 0.25]
-          ["Honor in partner color" 0.5]
-          ["T and 9 count in NT is 0" -0.5]])))
+         [[16 :high-card-points]
+          [0.5 :length "AJxx"]
+          [0.5 :length "AKJx"]
+          [0.5 :partner-suit-honors 1]
+          [-0.5 :T-9-count-in-SA 0]])))
 
 (deftest trump-points
   (is (= (scorix/trump-points
           ["ATxxxx" "xxx" "xx"   "xx"]
           [:trump    nil  :left :right]
           4)
-         [["High card points" 4]
-          ["Basic trump points correction" -1.5]
-          ["Trump suit length is 6" 1]
-          ["Promised 4 trumps, got 6" 2]
-          ["Trump honors (A->1.5, K/Q/J-> 1, T->0.75, 9->0.25, lowest card excluded, max 2.5)" 2.25]
-          ["Short other suits (Double->0.5, Single->1.5, Chikane->3)" 1]
-          ["Short opponent suits (except double in right opponent suit)" 0.5]]))
+         [[4 :high-card-points]
+          [-1.5 :trump-basic-correction]
+          [1 :trump-suit-length 6]
+          [2 :more-or-less-trumps-than-promised 2 "more"]
+          [2.25 :high-trump-cards]
+          [1 :short-non-trump-suits]
+          [0.5 :short-non-trump-opponent-suits]]))
   (is (= (scorix/trump-points
           ["AKQxxx" "KTx" "xxxx"  ""]
           [:trump    nil   nil   :left]
           4)
-         [["High card points" 12]
-          ["Basic trump points correction" -1.5]
-          ["Trump suit length is 6" 1]
-          ["Promised 4 trumps, got 6" 2]
-          ["Trump honors (A->1.5, K/Q/J-> 1, T->0.75, 9->0.25, lowest card excluded, max 2.5)" 2.5]
-          ["Other suit honors (A->0.5, Q/J->-0.5)" 0]
-          ["Short other suits (Double->0.5, Single->1.5, Chikane->3)" 3]
-          ["Short opponent suits (except double in right opponent suit)" 0.5]])))
+         [[12 :high-card-points]
+          [-1.5 :trump-basic-correction]
+          [1 :trump-suit-length 6]
+          [2 :more-or-less-trumps-than-promised 2 "more"]
+          [2.5 :high-trump-cards]
+          [0 :honors-in-non-trump-suits]
+          [3 :short-non-trump-suits]
+          [0.5 :short-non-trump-opponent-suits]])))
 
 (deftest random-hand
   (let [hand (scorix/random-hand)]

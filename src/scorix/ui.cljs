@@ -1,6 +1,7 @@
 (ns scorix.ui
   (:require [reagent.core :as reagent]
             [scorix.core :as scorix]
+            [scorix.describe :as describe]
             [clojure.string :as str]))
 
 (defn suit-icon [index]
@@ -172,10 +173,13 @@
     [:th "Total points"]
     [:th (scorix/score result)]]
    [:tbody
-    (map-indexed (fn [index [reason points]]
+    (map-indexed (fn [index [points reason :as result]]
                    ^{:key index}
                    [:tr
-                    [:td reason]
+                    [:td
+                     [:p (describe/format result)]
+                     #_(for [line (describe/extra-info reason)]
+                         [:pre line])]
                     [:td
                      {:class (when (neg? points)
                                :text-danger)}
