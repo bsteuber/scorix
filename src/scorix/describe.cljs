@@ -33,7 +33,7 @@
                       "Q -> 2"
                       "J -> 1"]
    :A-T-count ["The number of A and T are counted and compared to the average of 2."
-               "More than 2 ->  0.25 per extra card"
+               "More than 2 -> 0.25 per extra card"
                "Less than 2 -> -0.25 per missing card"]
    :blank ["A/K/Q                     -> -1"
            "J                         -> -0.75"

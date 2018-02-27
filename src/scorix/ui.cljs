@@ -1,8 +1,8 @@
 (ns scorix.ui
-  (:require [reagent.core :as reagent]
+  (:require [clojure.string :as str]
+            [reagent.core :as reagent]
             [scorix.core :as scorix]
-            [scorix.describe :as describe]
-            [clojure.string :as str]))
+            [scorix.describe :as describe]))
 
 (defn suit-icon [index]
   (get "♠♥♦♣" index))
@@ -136,7 +136,6 @@
           indices (map (partial str/index-of legal-chars) compressed-x)
           sorted? (apply < indices)
           message (str "Suit not sorted from highest to lowest: " suit)]
-      (println "Sort" compressed-x indices sorted?)
       (when-not sorted?
         [:div.alert.alert-danger message]))))
 
@@ -167,24 +166,63 @@
       (check-trump-suit)
       (check-13-cards)))
 
+(defn tabular-line? [line]
+  (re-find #"->" line))
+
+(defn format-extra-info [lines]
+  [:div.card.mt-2>div.card-body
+   (->> lines
+        (partition-by tabular-line?)
+        (map (fn [grouped]
+               (if (tabular-line? (first grouped))
+                 [:div.row.mt-6
+                  (for [line grouped]
+                    (let [[rule points] (str/split line #"->")]
+                      (list
+                       [:div.col-6.mb-2 rule]
+                       [:div.col-2 "→"]
+                       [:div.col-4.col-sm-4
+                        {:class (when (re-find #"^ *-" points)
+                                  :text-danger)}
+                        (str/replace points "^ *" (fn [spaces]
+                                                    (->> "\u200c"
+                                                         (repeat (count spaces))
+                                                         (apply str))))])))]
+                 (for [line grouped]
+                   [:div line])))))])
+
+(defn format-reason [[points reason :as fact]]
+  (let [show? (reagent/atom false)]
+    [(fn []
+       [:div
+         (describe/format fact)
+         [:button.btn.btn-link
+          {:on-click (fn [_]
+                       (swap! show? not))}
+          (if @show?
+            "Hide"
+            "Info")]
+         (when @show?
+           [format-extra-info (describe/extra-info reason)])])]))
+
 (defn format-result [result]
   [:div.row>div.col-lg-9>table.table.table-striped
+   [:col.w-75]
+   [:col.w-25]
    [:thead>tr
     [:th "Total points"]
     [:th (scorix/score result)]]
    [:tbody
-    (map-indexed (fn [index [points reason :as result]]
-                   ^{:key index}
-                   [:tr
-                    [:td
-                     [:p (describe/format result)]
-                     #_(for [line (describe/extra-info reason)]
-                         [:pre line])]
-                    [:td
-                     {:class (when (neg? points)
-                               :text-danger)}
-                     points]])
-                 result)]])
+    (doall (map-indexed (fn [index [points :as fact]]
+                          ^{:key index}
+                          [:tr
+                           [:td
+                            [format-reason fact]]
+                           [:td
+                            {:class (when (neg? points)
+                                      :text-danger)}
+                            points]])
+                        result))]])
 
 (defn eval-result []
   (let [score-fn (case (:eval-type @state)
@@ -207,8 +245,7 @@
   [:div.container
    [:h1.display-4.mt-4 "Scorix Bridge Calculator"]
    [:button.btn.btn-link {:on-click (fn [_]
-                                      (swap! state assoc :hand (scorix/random-hand))
-                                      (println "HAND" (:hand @state)))}
+                                      (swap! state assoc :hand (scorix/random-hand)))}
     "Generate random hand"]
    [suit-inputs]
    [eval-type-input]
