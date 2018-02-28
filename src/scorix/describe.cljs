@@ -28,28 +28,30 @@
    :trump-basic-correction "Basic correction for suit contracts"})
 
 (def extra-info
-  {:high-card-points ["A -> 4"
+  {:high-card-points ["High cards are counted as follows:"
+                      "A -> 4"
                       "K -> 3"
                       "Q -> 2"
                       "J -> 1"]
-   :A-T-count ["The number of A and T are counted and compared to the average of 2."
+   :A-T-count ["The number of A and T are counted and compared to the average of 2:"
                "More than 2 ->  0.25 per extra card"
                "Less than 2 -> -0.25 per missing card"]
    :blank ["Blank honors or honor combinations weaken your hand:"
-           "A, K, Q                   -> -1"
-           "J                         -> -0.75"
-           "T                         -> -0.25"
-           "QJ                        -> -1"
+           "A, K, Q -> -1"
+           "J -> -0.75"
+           "T -> -0.25"
+           "QJ -> -1"
            "AK, AKQ, AJ, KQ, KQJ, KJ, QT, JT -> -0.5"
            "AKJ, AQJ, AQ, AT, KT, Qx, Jx, Tx -> -0.25"]
-   :length ["Weak 5 card suit                 -> 0.5"
-            "Reasonable or strong 4 card suit -> 0.5"
-            "Weak 6 card suit                 -> 1"
-            "Reasonable 5 card suit           -> 1"
-            "Weak or reasonable 7+ card suit  -> 2"
-            "Reasonable 6 card suit           -> 2"
-            "Strong 5 card suit               -> 1.5"
-            "Strong 6+ card suit              -> 3"]
+   :length ["Long suits give extra points depending on their strength:"
+            "Weak 5 card suit -> 0.5"
+            "At least reasonable 4 card suit -> 0.5"
+            "Weak 6 card suit -> 1"
+            "Reasonable 5 card suit -> 1"
+            "Weak or reasonable 7+ card suit -> 2"
+            "Reasonable 6 card suit -> 2"
+            "Strong 5 card suit -> 1.5"
+            "Strong 6+ card suit -> 3"]
    :AQJ ["Any occurance of AQJ combination -> 0.25"]
    :partner-suit-honors ["1  honor  in partner suit -> 0.5"
                          "2+ honors in partner suit -> 1"]

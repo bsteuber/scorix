@@ -207,9 +207,9 @@
                     (let [[rule points] (str/split line #"->")]
                       (list
                        ^{:key rule}
-                       [:div.col-6.font-weight-bold rule]
+                       [:div.col-7.font-weight-bold rule]
                        ^{:key points}
-                       [:div.col-6
+                       [:div.col-5
                         (let [[num text] (-> points
                                              (str/replace #"^ *" "")
                                              (str/split #" " 2))]
@@ -226,7 +226,7 @@
     [(fn []
        [:div
          (describe/format fact)
-         [:button.btn.btn-link
+         [:button.btn.btn-link.text-info
           {:on-click (fn [_]
                        (swap! show? not))}
           (if @show?
