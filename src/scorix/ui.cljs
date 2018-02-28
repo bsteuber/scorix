@@ -196,18 +196,18 @@
         (str "." post))]]))
 
 (defn format-extra-info [lines]
-  [:div.card.mt-2>div.card-body
+  [:div.alert.alert-info>div.card-body
    (->> lines
         (partition-by tabular-line?)
         (map (fn [grouped]
                (if (tabular-line? (first grouped))
                  ^{:key grouped}
-                 [:div.row.mt-2
+                 [:div.row
                   (for [line grouped]
                     (let [[rule points] (str/split line #"->")]
                       (list
                        ^{:key rule}
-                       [:div.col-6.mb-2 rule]
+                       [:div.col-6.font-weight-bold rule]
                        ^{:key points}
                        [:div.col-6
                         (let [[num text] (-> points
