@@ -313,7 +313,7 @@
 
 (defn footer []
   [:div
-   (popup-info [disclaimer] "Known Limitations")
+   (popup-info [disclaimer] "Limitations of this software")
    [:div.mt-3.mb-2.font-italic
     {:style {:font-size "10px"}}
     "© 2018 by Benjamin Teuber"]])
