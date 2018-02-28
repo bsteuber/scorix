@@ -88,20 +88,17 @@
   [:div.form
    [:div.form-group.mb-0.5>div.form-check-inline
     {:on-click (fn [x]
-                 (swap! state assoc :eval-type :ground))
-     :title "Required points:\n13 for opening"}
+                 (swap! state assoc :eval-type :ground))}
     (eval-type-radio :ground)
     (radio-label "No contract yet")]
    [:div.form-group.mb-0.5>div.form-check-inline
     {:on-click (fn [x]
-                 (swap! state assoc :eval-type :no-trump))
-     :title "Required points:\n25 for 3NT\n34 for 6NT"}
+                 (swap! state assoc :eval-type :no-trump))}
     (eval-type-radio :no-trump)
     (radio-label "NT contract")]
    [:form.form-group>div.form-check-inline
     {:on-click (fn [x]
-                 (swap! state assoc :eval-type :trump))
-     :title "Required points:\n25 for 4 in suit\n29 for 5 in suit\n33 for 6 in suit"}
+                 (swap! state assoc :eval-type :trump))}
     (eval-type-radio :trump)
     (radio-label "Suit contract with")
     [:input.form-control.ml-1.mr-1
@@ -196,7 +193,7 @@
         (str "." post))]]))
 
 (defn format-extra-info [lines]
-  [:div.alert.alert-info>div.card-body
+  [:div.font-weight-normal
    (->> lines
         (partition-by tabular-line?)
         (map (fn [grouped]
@@ -221,25 +218,32 @@
                    ^{:key line}
                    [:div line])))))])
 
-(defn format-reason [[points reason :as fact]]
+(defn popup-info [content]
   (let [show? (reagent/atom false)]
     [(fn []
-       [:div
-         (describe/format fact)
-         [:button.btn.btn-link.text-info
-          {:on-click (fn [_]
-                       (swap! show? not))}
-          (if @show?
-            "Hide"
-            "Info")]
-         (when @show?
-           [format-extra-info (describe/extra-info reason)])])]))
+       [:span
+        [:button.btn.btn-link.text-info
+         {:on-click (fn [_]
+                      (swap! show? not))}
+         (if @show?
+           "Hide"
+           "Info")]
+        (when @show?
+          [:div.alert.alert-info
+           content])])]))
+
+(defn format-reason [[_ reason :as fact]]
+  [:div
+   (describe/format fact)
+   (popup-info [format-extra-info (describe/extra-info reason)])])
 
 (defn format-result [result]
   [:div.row>div.col-lg-9>table.table.table-striped
    [:thead>tr
-    [:th.w-75 "Total points"]
-    [:th.w-25 {:title ".5 is rounded down - .75 is rounded up"}
+    [:th.w-75
+     [format-reason [0 :total-points]]]
+    [:th.w-25
+     {:style {:vertical-align :top}}
      [format-points (scorix/score result)]]]
    [:tbody
     (doall (map-indexed (fn [index [points :as fact]]
@@ -270,7 +274,7 @@
 
 (defn page []
   [:div.container
-   [:h1.display-4.mt-4 "Scorix Bridge Calculator"]
+   [:h1.display-4.mt-4 "Scorix Bridge Hand Evaluator"]
    [:button.btn.btn-link {:on-click (fn [_]
                                       (swap! state assoc :hand (scorix/random-hand)))}
     "Generate random hand"]

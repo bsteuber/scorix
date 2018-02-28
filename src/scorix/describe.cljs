@@ -3,7 +3,8 @@
             [goog.string.format]))
 
 (def text
-  {:high-card-points "High card points"
+  {:total-points "Total points"
+   :high-card-points "High card points"
    :A-T-count "A and T count is %d"
    :blank "Blank %s"
    :length "Length %s"
@@ -28,7 +29,15 @@
    :trump-basic-correction "Basic correction for suit contracts"})
 
 (def extra-info
-  {:high-card-points ["High cards are counted as follows:"
+  {:total-points ["Sum of points required for bids:"
+                  "Solid opening -> 13"
+                  "4 in suit -> 25"
+                  "3NT -> 25"
+                  "5 in suit -> 29"
+                  "6 in suit -> 33"
+                  "6NT ->34"
+                  "(0.5 is rounded to 0 and 0.75 is rounded to 1)"]
+   :high-card-points ["High cards are counted as follows:"
                       "A -> 4"
                       "K -> 3"
                       "Q -> 2"
@@ -73,21 +82,21 @@
    :QJT9-or-QJT9-in-opponent-suit-in-NT ["In NT when the opponents are developing the suit, the 9 or 8 in QJT9 or QJT8 might make a trick."]
    :JTxx-or-J9xx-in-right-opponent-suit-in-NT ["In NT when the right opponent has most of the honors, the T or 9 in JTxx or J9xx can duck and possibly make a trick."]
    :trump-suit-length ["Each trump card starting from the 6th -> 1"]
-   :more-or-less-trumps-than-promised ["Each extra   trump card ->  1"
+   :more-or-less-trumps-than-promised ["Each extra trump card -> 1"
                                        "Each missing trump card -> -1"]
-   :high-trump-cards ["A     -> 1.5"
+   :high-trump-cards ["A -> 1.5"
                       "K, Q, J -> 1"
-                      "T     -> 0.75"
-                      "9     -> 0.25"
+                      "T -> 0.75"
+                      "9 -> 0.25"
                       "The lowest card of the suit is excluded. Maximum 2.5 points."]
    :honors-in-non-trump-suits ["A    ->  0.5"
                                "Q, J -> -0.5"]
    :short-non-trump-suits ["Doubleton -> 0.5"
                            "Singleton -> 1.5"
-                           "Void      -> 3)"]
+                           "Void -> 3"]
    :short-non-trump-opponent-suits ["Short in an opponent suit -> 0.5"
                                     "Exception: doubleton in suit bid by right opponent, as left is likely to be short, too."]
-   :trump-basic-correction ["This substraction is necessary as a corrective to all the length and trump high cards counted."]})
+   :trump-basic-correction ["This substraction is necessary for all suit contracts. It compensates for the many trump honor points, trump suit lengh points, and short other suit points added below"]})
 
 (defn format [[_ key & args]]
   (apply gstring/format (get text key) args))
