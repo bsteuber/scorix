@@ -279,24 +279,22 @@
   [:div
    "Limitations of this software:"
    [:ul
-    [:li "Short partner suits are not configurable. In practice, in suit contracts you should:"
+    [:li "Partner shortness is not configurable. In practice, for suit contracts when your partner is short in a suit:"
      [:ul
-      [:li "Substract your partner's short suit points from your own for that suit (but not below 0)"]
-      [:li "Evaluate your suit length and points:"
-       [:ul
-        [:li "Lengths are good (especially if you have spare trumps)."]
-        [:li "Points are bad (but e.g. A against singleton not that bad)."]
-        [:li "Based on this, modify your points:"]
-        [:ul
-         [:li>div.row
-          [:span.col-sm-6 "Against partner doubleton"]
-          [:span.col-sm-6 "→" [format-points "-0.75"] " to" [format-points "0.75"]]]
-         [:li>div.row
-          [:span.col-sm-6 "Against partner singleton"]
-          [:span.col-sm-6 "→" [format-points "-2"] " to" [format-points "2"]]]
-         [:li>div.row
-          [:span.col-sm-6 "Against partner chikane"]
-          [:span.col-sm-6 "→" [format-points "-3"] " to" [format-points "4"]]]]]]]]
+      [:li "Lengths are good (especially if you have spare trumps)."]
+      [:li "Points are bad (but e.g. A against singleton isn't as bad as K)."]
+      [:li "Own shortness is bad since you cannot ruff anymore"]
+      [:li "Based on the above, modify your points:"]
+      [:ul
+       [:li>div.row
+        [:span.col-sm-6 "Against partner doubleton"]
+        [:span.col-sm-6 "→" [format-points "-0.75"] " to" [format-points "0.75"]]]
+       [:li>div.row
+        [:span.col-sm-6 "Against partner singleton"]
+        [:span.col-sm-6 "→" [format-points "-2"] " to" [format-points "2"]]]
+       [:li>div.row
+        [:span.col-sm-6 "Against partner chikane"]
+        [:span.col-sm-6 "→" [format-points "-3"] " to" [format-points "4"]]]]]]
     [:li "Although the algorithm was tested a lot, there might always be bugs. So please don't sue me if you lose a championship match just because scorix was wrong :p"]
     [:li "There are situations that cannot be accounted for by a fixed set of rules. So always use your own judgement!"]]])
 
