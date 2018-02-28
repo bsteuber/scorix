@@ -32,6 +32,9 @@
                 (swap! state assoc-in [:infos index] info))}
    (info-text info)])
 
+(defn remove-duplicates [suit]
+  (str/replace suit #"([^x])\1+" ffirst))
+
 (defn suit-input [index]
   ^{:key index}
   [:div.row
@@ -43,12 +46,18 @@
                  ""
                  "text-danger")
         :style {:font-size "20px"
-                :width "1.6em"
-                }}
+                :width "1.6em"}}
        (suit-icon index)]]
      [:input.form-control
-      {:on-change (fn [x]
-                    (swap! state assoc-in [:hand index] x.target.value))
+      {:on-change (fn [evt]
+                    (let [suit (-> evt.target.value
+                                   (str/replace #"[akqjt]" #(str/upper-case %))
+                                   (str/replace #"[^AKQJT98765432x]" ""))
+                          sorted-and-distinct (->> suit
+                                                   (sort-by #(str/index-of "AKQJT98765432x" %))
+                                                   str/join
+                                                   remove-duplicates)]
+                      (swap! state assoc-in [:hand index] sorted-and-distinct)))
        :type :text
        :placeholder (get ["e.g. AKQxx"
                           "e.g. JT8x"
@@ -59,8 +68,7 @@
        :value (get-in @state [:hand index])}]]]
    [:div.col-lg-9
     (doall (map (partial suit-info-button index)
-                [nil :left :partner :right :trump]))]
-   ])
+                [nil :left :partner :right :trump]))]])
 
 (defn suit-inputs []
   [:div.form-group
@@ -80,17 +88,20 @@
   [:div.form
    [:div.form-group.mb-0.5>div.form-check-inline
     {:on-click (fn [x]
-                 (swap! state assoc :eval-type :ground))}
+                 (swap! state assoc :eval-type :ground))
+     :title "Required points:\n13 for opening"}
     (eval-type-radio :ground)
     (radio-label "No contract yet")]
    [:div.form-group.mb-0.5>div.form-check-inline
     {:on-click (fn [x]
-                 (swap! state assoc :eval-type :no-trump))}
+                 (swap! state assoc :eval-type :no-trump))
+     :title "Required points:\n25 for 3NT\n34 for 6NT"}
     (eval-type-radio :no-trump)
     (radio-label "NT contract")]
    [:form.form-group>div.form-check-inline
     {:on-click (fn [x]
-                 (swap! state assoc :eval-type :trump))}
+                 (swap! state assoc :eval-type :trump))
+     :title "Required points:\n25 for 4 in suit\n29 for 5 in suit\n33 for 6 in suit"}
     (eval-type-radio :trump)
     (radio-label "Suit contract with")
     [:input.form-control.ml-1.mr-1
@@ -169,26 +180,45 @@
 (defn tabular-line? [line]
   (re-find #"->" line))
 
+(defn format-points [points]
+  (let [negative? (re-find #"^ *-" (str points))
+        [pre post] (str/split (str points) #"\.")]
+    [:span {:class (when negative?
+                     :text-danger)
+            :style {:white-space :nowrap}}
+     [:span {:style {:display :inline-block
+                     :text-align :right
+                     :width "1.5em"}}
+      pre]
+     [:span {:style {:display :inline-block
+                     :width "1.7em"}}
+      (when post
+        (str "." post))]]))
+
 (defn format-extra-info [lines]
   [:div.card.mt-2>div.card-body
    (->> lines
         (partition-by tabular-line?)
         (map (fn [grouped]
                (if (tabular-line? (first grouped))
-                 [:div.row.mt-6
+                 ^{:key grouped}
+                 [:div.row.mt-2
                   (for [line grouped]
                     (let [[rule points] (str/split line #"->")]
                       (list
+                       ^{:key rule}
                        [:div.col-6.mb-2 rule]
-                       [:div.col-2 "→"]
-                       [:div.col-4.col-sm-4
-                        {:class (when (re-find #"^ *-" points)
-                                  :text-danger)}
-                        (str/replace points "^ *" (fn [spaces]
-                                                    (->> "\u200c"
-                                                         (repeat (count spaces))
-                                                         (apply str))))])))]
+                       ^{:key points}
+                       [:div.col-6
+                        (let [[num text] (-> points
+                                             (str/replace #"^ *" "")
+                                             (str/split #" " 2))]
+                          [:span
+                           "→"
+                           [format-points num]
+                           text])])))]
                  (for [line grouped]
+                   ^{:key line}
                    [:div line])))))])
 
 (defn format-reason [[points reason :as fact]]
@@ -207,11 +237,10 @@
 
 (defn format-result [result]
   [:div.row>div.col-lg-9>table.table.table-striped
-   [:col.w-75]
-   [:col.w-25]
    [:thead>tr
-    [:th "Total points"]
-    [:th (scorix/score result)]]
+    [:th.w-75 "Total points"]
+    [:th.w-25 {:title ".5 is rounded down - .75 is rounded up"}
+     [format-points (scorix/score result)]]]
    [:tbody
     (doall (map-indexed (fn [index [points :as fact]]
                           ^{:key index}
@@ -219,9 +248,7 @@
                            [:td
                             [format-reason fact]]
                            [:td
-                            {:class (when (neg? points)
-                                      :text-danger)}
-                            points]])
+                            [format-points points]]])
                         result))]])
 
 (defn eval-result []
@@ -247,6 +274,10 @@
    [:button.btn.btn-link {:on-click (fn [_]
                                       (swap! state assoc :hand (scorix/random-hand)))}
     "Generate random hand"]
+   (when (seq (apply concat (:hand @state)))
+     [:button.btn.btn-link {:on-click (fn [_]
+                                        (swap! state assoc :hand ["" "" "" ""]))}
+      "Clear hand"])
    [suit-inputs]
    [eval-type-input]
    [eval-output]])

@@ -33,15 +33,15 @@
                       "Q -> 2"
                       "J -> 1"]
    :A-T-count ["The number of A and T are counted and compared to the average of 2."
-               "More than 2 -> 0.25 per extra card"
+               "More than 2 ->  0.25 per extra card"
                "Less than 2 -> -0.25 per missing card"]
-   :blank ["A/K/Q                     -> -1"
+   :blank ["Blank honors or honor combinations weaken your hand:"
+           "A, K, Q                   -> -1"
            "J                         -> -0.75"
            "T                         -> -0.25"
            "QJ                        -> -1"
-           "AK/AKQ/AJ/KQ/KQJ/KJ/QT/JT -> -0.5"
-           "AKJ/AQJ/AQ/AT/KT/Qx/Jx/Tx -> -0.25"
-           nil]
+           "AK, AKQ, AJ, KQ, KQJ, KJ, QT, JT -> -0.5"
+           "AKJ, AQJ, AQ, AT, KT, Qx, Jx, Tx -> -0.25"]
    :length ["Weak 5 card suit                 -> 0.5"
             "Reasonable or strong 4 card suit -> 0.5"
             "Weak 6 card suit                 -> 1"
@@ -55,10 +55,10 @@
                          "2+ honors in partner suit -> 1"]
    :short-in-partner-suit ["Singleton in partner suit -> -1"
                            "Void in partner suit      -> -2"]
-   :gap-in-right-suit ["KQx/KJx           ->  1"
-                       "Kx/Qxx/AJx/AKT/AQ ->  0.5"]
-   :gap-in-left-suit ["KQx/KJx           -> -1"
-                      "Kx/Qxx/AJx/AKT/AQ -> -0.5"]
+   :gap-in-right-suit ["KQx, KJx           ->  1"
+                       "Kx, Qxx, AJx, AKT, AQ ->  0.5"]
+   :gap-in-left-suit ["KQx, KJx           -> -1"
+                      "Kx, Qxx, AJx, AKT, AQ -> -0.5"]
    :length-in-opponent-color ["Previous length points are reduced by up to 1."
                               "Gap-free lengths are still counted."]
    :blank-honors-in-left-opponent-suit ["Blank KJ -> -1"
@@ -74,12 +74,12 @@
    :more-or-less-trumps-than-promised ["Each extra   trump card ->  1"
                                        "Each missing trump card -> -1"]
    :high-trump-cards ["A     -> 1.5"
-                      "K/Q/J -> 1"
+                      "K, Q, J -> 1"
                       "T     -> 0.75"
                       "9     -> 0.25"
                       "The lowest card of the suit is excluded. Maximum 2.5 points."]
    :honors-in-non-trump-suits ["A    ->  0.5"
-                               "Q/J -> -0.5"]
+                               "Q, J -> -0.5"]
    :short-non-trump-suits ["Doubleton -> 0.5"
                            "Singleton -> 1.5"
                            "Void      -> 3)"]
