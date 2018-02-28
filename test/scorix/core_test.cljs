@@ -87,6 +87,16 @@
   (is (= (scorix/ground-AQJ-points ["AQJ" "xxxxx" "xxxxx" ""])
          [[0.25 :AQJ]])))
 
+(deftest gap-free-length
+  (is (nil? (scorix/gap-free-length "")))
+  (is (nil? (scorix/gap-free-length "A")))
+  (is (= (scorix/gap-free-length "AKQJT98")
+         7))
+  (is (= (scorix/gap-free-length "KQT9875")
+         4))
+  (is (= (scorix/gap-free-length "AQJT9")
+         4)))
+
 (deftest ground-partner-suit
   (is (empty? (scorix/ground-partner-suit-points "xx" :partner)))
   (is (= (scorix/ground-partner-suit-points "" :partner)
@@ -109,11 +119,13 @@
          [[1 :gap-in-right-suit "KQ9"]]))
   (is (= (scorix/ground-right-opponent-suit-points "KQxx" :right)
          [[1 :gap-in-right-suit "KQx"]
-          #_[-0.5 :length-in-opponent-suit]]))
-  (is (= (scorix/ground-right-opponent-suit-points "Axxx" :right)
-         [#_[-0.5 :length-in-opponent-suit]]))
+          [-0.5 :length-in-opponent-suit "KQxx"]]))
+  (is (= (scorix/ground-right-opponent-suit-points "AKxxxx" :right)
+         [[-1 :length-in-opponent-suit "AKxxxx"]]))
+  (is (empty? (scorix/ground-right-opponent-suit-points "AKQJT9xx" :right)))
   (is (= (scorix/ground-right-opponent-suit-points "xxxxxx" :right)
-         [[-1 :length-in-opponent-suit "xxxxxx"]])))
+         [[-1 :length-in-opponent-suit "xxxxxx"]]))
+  (is (empty? (scorix/ground-right-opponent-suit-points "98765432" :right))))
 
 (deftest ground-left-opponent-suit
   (is (empty? (scorix/ground-left-opponent-suit-points "" :left)))
@@ -123,11 +135,11 @@
          [[-1 :gap-in-left-suit "KQx"]]))
   (is (= (scorix/ground-left-opponent-suit-points "KQxx" :left)
          [[-1 :gap-in-left-suit "KQx"]
-          #_["Non-solid length in opponent color" -0.5]]))
+          [-0.5 :length-in-opponent-suit "KQxx"]]))
   (is (= (scorix/ground-left-opponent-suit-points "Axxx" :left)
-         [#_["Non-solid length in opponent color" -0.5]]))
+         [[-0.5 :length-in-opponent-suit "Axxx"]]))
   (is (= (scorix/ground-left-opponent-suit-points "AKQxx" :left)
-         [#_["Non-solid length in opponent color" -1]])))
+         [[-1 :length-in-opponent-suit "AKQxx"]])))
 
 (deftest ground
   (is (= (scorix/ground-points
@@ -188,6 +200,7 @@
           [0.5 :A-T-count 4]
           [1 :length "QJT9x"]
           [-0.5 :gap-in-left-suit "QJT"]
+          [-0.5 :length-in-opponent-suit "QJT9x"]
           [0.5 :T-9-count-in-SA 4]
           [0.5 :QJT9-or-QJT9-in-opponent-suit-in-NT "QJT9"]
           [0.25 :JTxx-or-J9xx-in-right-opponent-suit-in-NT "JTxx"]]))
@@ -219,10 +232,11 @@
          [[4 :high-card-points]
           [-1.5 :trump-basic-correction]
           [1 :trump-suit-length 6]
-          [2 :more-or-less-trumps-than-promised 2 "more"]
+          [2 :more-or-less-trumps-than-promised 4 6]
           [2.25 :high-trump-cards]
           [1 :short-non-trump-suits]
-          [0.5 :short-non-trump-opponent-suits]]))
+          [0.5 :short-non-trump-opponent-suit 2 :left]
+          [0 :short-non-trump-opponent-suit 2 :right]]))
   (is (= (scorix/trump-points
           ["AKQxxx" "KTx" "xxxx"  ""]
           [:trump    nil   nil   :left]
@@ -230,11 +244,11 @@
          [[12 :high-card-points]
           [-1.5 :trump-basic-correction]
           [1 :trump-suit-length 6]
-          [2 :more-or-less-trumps-than-promised 2 "more"]
+          [2 :more-or-less-trumps-than-promised 4 6]
           [2.5 :high-trump-cards]
           [0 :honors-in-non-trump-suits]
           [3 :short-non-trump-suits]
-          [0.5 :short-non-trump-opponent-suits]])))
+          [0.5 :short-non-trump-opponent-suit 0 :left]])))
 
 (deftest random-hand
   (let [hand (scorix/random-hand)]

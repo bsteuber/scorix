@@ -54,7 +54,7 @@
                                    (str/replace #"[akqjt]" #(str/upper-case %))
                                    (str/replace #"[^AKQJT98765432x]" ""))
                           sorted-and-distinct (->> suit
-                                                   (sort-by #(str/index-of "AKQJT98765432x" %))
+                                                   (sort-by scorix/card->val)
                                                    str/join
                                                    remove-duplicates)]
                       (swap! state assoc-in [:hand index] sorted-and-distinct)))
@@ -218,19 +218,22 @@
                    ^{:key line}
                    [:div line])))))])
 
-(defn popup-info [content]
-  (let [show? (reagent/atom false)]
-    [(fn []
-       [:span
-        [:button.btn.btn-link.text-info
-         {:on-click (fn [_]
-                      (swap! show? not))}
-         (if @show?
-           "Hide"
-           "Info")]
-        (when @show?
-          [:div.alert.alert-info
-           content])])]))
+(defn popup-info
+  ([content]
+   (popup-info content "Info"))
+  ([content label]
+   (let [show? (reagent/atom false)]
+     [(fn []
+        [:span
+         [:button.btn.btn-link.text-info
+          {:on-click (fn [_]
+                       (swap! show? not))}
+          (if @show?
+            "Hide"
+            label)]
+         (when @show?
+           [:div.alert.alert-info
+            content])])])))
 
 (defn format-reason [[_ reason :as fact]]
   [:div
@@ -272,16 +275,56 @@
      (when-not error
        (eval-result))]))
 
-(defn page []
-  [:div.container
-   [:h1.display-4.mt-4 "Scorix Bridge Hand Evaluator"]
+(defn disclaimer []
+  [:div
+   "Limitations of this software:"
+   [:ul
+    [:li "Short partner suits are not configurable. In practice, in suit contracts you should:"
+     [:ul
+      [:li "Substract your partner's short suit points from your own for that suit (but not below 0)"]
+      [:li "Evaluate your suit length and points:"
+       [:ul
+        [:li "Lengths are good (especially if you have spare trumps)."]
+        [:li "Points are bad (but e.g. A against singleton not that bad)."]
+        [:li "Based on this, modify your points:"]
+        [:ul
+         [:li>div.row
+          [:span.col-sm-6 "Against partner doubleton"]
+          [:span.col-sm-6 "→" [format-points "-0.75"] " to" [format-points "0.75"]]]
+         [:li>div.row
+          [:span.col-sm-6 "Against partner singleton"]
+          [:span.col-sm-6 "→" [format-points "-2"] " to" [format-points "2"]]]
+         [:li>div.row
+          [:span.col-sm-6 "Against partner chikane"]
+          [:span.col-sm-6 "→" [format-points "-3"] " to" [format-points "4"]]]]]]]]
+    [:li "Although the algorithm was tested a lot, there might always be bugs. So please don't sue me if you lose a championship match just because scorix was wrong :p"]
+    [:li "There are situations that cannot be accounted for by a fixed set of rules. So always use your own judgement!"]]])
+
+(defn header []
+  [:h1.display-4.mt-4 "Scorix Bridge Hand Evaluator"])
+
+(defn tools []
+  [:span
    [:button.btn.btn-link {:on-click (fn [_]
                                       (swap! state assoc :hand (scorix/random-hand)))}
     "Generate random hand"]
    (when (seq (apply concat (:hand @state)))
      [:button.btn.btn-link {:on-click (fn [_]
                                         (swap! state assoc :hand ["" "" "" ""]))}
-      "Clear hand"])
+      "Clear hand"])])
+
+(defn footer []
+  [:div
+   (popup-info [disclaimer] "Known Limitations")
+   [:div.mt-3.mb-2.font-italic
+    {:style {:font-size "10px"}}
+    "© 2018 by Benjamin Teuber"]])
+
+(defn page []
+  [:div.container
+   [header]
+   [tools]
    [suit-inputs]
    [eval-type-input]
-   [eval-output]])
+   [eval-output]
+   [footer]])

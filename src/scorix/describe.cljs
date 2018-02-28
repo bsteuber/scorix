@@ -2,14 +2,26 @@
   (:require [goog.string :as gstring]
             [goog.string.format]))
 
+(defn format-short-non-trump-opponent-suit [length opponent]
+  (let [length-str (case length
+                     0 "Void"
+                     1 "Singleton"
+                     2 "Doubleton")
+        opponent-str (if (= length 2)
+                       (str " " (name opponent))
+                       "")]
+    (gstring/format "%s in%s opponent suit in suit contract"
+                    length-str
+                    opponent-str)))
+
 (def text
   {:total-points "Total points"
    :high-card-points "High card points"
    :A-T-count "A and T count is %d"
    :blank "Blank %s"
-   :length "Length %s"
+   :length "Long %s suit"
    :AQJ "AQJ occurances"
-   :partner-suit-honors "Honors in partner suit: %d"
+   :partner-suit-honors "Honors in partner suit"
    :short-in-partner-suit "Short %s in partner suit"
    :gap-in-right-suit "%s in right opponent suit"
    :gap-in-left-suit "%s in left opponent suit"
@@ -21,11 +33,11 @@
    :QJT9-or-QJT9-in-opponent-suit-in-NT "%s in opponent suit in NT"
    :JTxx-or-J9xx-in-right-opponent-suit-in-NT "%s in right opponent suit in NT"
    :trump-suit-length "Trump suit length is %d"
-   :more-or-less-trumps-than-promised "%d %s trump(s) than promised"
+   :more-or-less-trumps-than-promised "Promised %s trumps, got %s"
    :high-trump-cards "High trump cards"
    :honors-in-non-trump-suits "Honors in non-trump suits"
    :short-non-trump-suits "Short non-trump suits"
-   :short-non-trump-opponent-suits "Short non-trump opponent suits"
+   :short-non-trump-opponent-suit format-short-non-trump-opponent-suit
    :trump-basic-correction "Basic correction for suit contracts"})
 
 (def extra-info
@@ -94,9 +106,13 @@
    :short-non-trump-suits ["Doubleton -> 0.5"
                            "Singleton -> 1.5"
                            "Void -> 3"]
-   :short-non-trump-opponent-suits ["Short in an opponent suit -> 0.5"
-                                    "Exception: doubleton in suit bid by right opponent, as left is likely to be short, too."]
+   :short-non-trump-opponent-suit ["Short in an opponent suit -> 0.5"
+                                   "Exception: Doubleton in suit bid by right opponent, as left is likely to be short, too."
+                                   "If it is clear from the bidding left has at least three cards, you can manually count the 0.5 (not covered in this software)."]
    :trump-basic-correction ["This substraction is necessary for all suit contracts. It compensates for the many trump honor points, trump suit lengh points, and short other suit points added below"]})
 
 (defn format [[_ key & args]]
-  (apply gstring/format (get text key) args))
+  (let [fn-or-format-string (get text key)]
+    (if (fn? fn-or-format-string)
+      (apply fn-or-format-string args)
+      (apply gstring/format fn-or-format-string args))))

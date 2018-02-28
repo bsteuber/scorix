@@ -74,26 +74,31 @@
 (defn strong-suit? [suit]
   (re-find #"AKQ|AKJ|AQJT|KQJT" suit))
 
+(defn length-points
+  ([suit]
+   (length-points suit (count suit)))
+  ([suit override-length]
+   (let [len override-length
+         ok-or-strong? (reasonable-suit? suit)
+         weak? (not ok-or-strong?)
+         strong? (strong-suit? suit)
+         weak-or-ok? (not strong?)
+         ok? (and ok-or-strong?
+                  weak-or-ok?)]
+     (cond
+       (and (= len 5) weak?) 0.5
+       (and (= len 4) ok-or-strong?) 0.5
+       (and (= len 6) weak?) 1
+       (and (= len 5) ok?) 1
+       (and (>= len 7) weak-or-ok?) 2
+       (and (= len 6) ok?) 2
+       (and (= len 5) strong?) 1.5
+       (and (>= len 6) strong?) 3))))
+
 (defn ground-length-points [suit info]
   (when-not (= info :trump)
-    (let [length (count suit)
-          reasonable-or-strong? (reasonable-suit? suit)
-          weak? (not reasonable-or-strong?)
-          strong? (strong-suit? suit)
-          weak-or-reasonable? (not strong?)
-          reasonable? (and reasonable-or-strong?
-                           weak-or-reasonable?)
-          points (cond
-                   (and (= length 5) weak?) 0.5
-                   (and (= length 4) reasonable-or-strong?) 0.5
-                   (and (= length 6) weak?) 1
-                   (and (= length 5) reasonable?) 1
-                   (and (>= length 7) weak-or-reasonable?) 2
-                   (and (= length 6) reasonable?) 2
-                   (and (= length 5) strong?) 1.5
-                   (and (>= length 6) strong?) 3)]
-      (when points
-        [[points :length suit]]))))
+    (when-let [points (length-points suit)]
+      [[points :length suit]])))
 
 (defn ground-AQJ-points [hand]
   (let [points (->> hand
@@ -144,16 +149,36 @@
     :>> #(vector [-0.5 :gap-in-left-suit (first %)])
     nil))
 
-(defn solid? [suit]
-  ; first gap ends the length, recalc
-  )
+(defn card->val [card]
+  ;; the _ is there so there's a gap before x, see below
+  (str/index-of "AKQJT98765432_x" card))
+
+(defn gap-free-length [suit]
+  (->> suit
+       (partition 2 1)
+       (map (fn [[card-1 card-2]]
+              (when (= (inc (card->val card-1))
+                       (card->val card-2))
+                [card-1 card-2])))
+       (partition-by nil?)
+       (map (fn [tuples]
+              (when (first tuples)
+                (->> tuples
+                     (apply concat)
+                     distinct
+                     count))))
+       (apply max)))
 
 (defn ground-opponent-suit-length-points [suit]
-  (when-not (reasonable-suit? suit) ; TODO: solid = ok? strong? other?
-    (let [length-points (score (ground-length-points suit nil))
-          discount (min length-points 1)]
-      (when (pos? discount)
-        [[(- discount) :length-in-opponent-suit suit]]))))
+  (let [full-length-points (length-points suit)
+        len (or (gap-free-length suit)
+                0)
+        gap-free-length-points (length-points suit len)
+        difference (- full-length-points
+                      gap-free-length-points)
+        discount (min difference 1)]
+    (when (pos? discount)
+      [[(- discount) :length-in-opponent-suit suit]])))
 
 (defn ground-left-opponent-double-points [suit]
   (when-let [points (case suit
@@ -199,11 +224,34 @@
 
     (when [[0.25 :QJxx-in-NT matching]])))
 
+(defn length-to-cover-T [suit]
+  ;; In all combinations of honors, given all missing majors
+  ;; are owned and played by right, how long must the suit be
+  ;; such that the T will make a trick?
+  ;; Essentially this boils down to counting the number of gaps,
+  ;; because for each gap two honors will fall into the same trick.
+  (condp re-find suit
+    #"^T" 5
+    #"^JT" 5
+    #"^QT" 4
+    #"^QJT" 5
+    #"^KT" 4
+    #"^KJT" 4
+    #"^KQT" 4
+    #"^KQJT" 5
+    #"^AT" 4
+    #"^AJT" 4
+    #"^AQT" 3
+    #"^AQJT" 4
+    #"^AKT" 3
+    #"^AKJT" 4
+    #"^AKQT" 4
+    #"^AKQJT" 5))
+
 (defn no-trump-right-opponent-suit-covered-T-points [suit info]
-  ;; 16 cases, right has all other honors - will the T make a trick?
   (when (and (= info :right)
-             (re-find #"T9" suit)
-             (>= (count suit) 2))   ; TODO: definition of covered?
+             (re-find #"T" suit)
+             (>= (count suit) (length-to-cover-T suit)))
     [[0.5 :covered-T-in-right-suit-in-NT]]))
 
 (defn no-trump-opponent-suit-QJT9-or-QJT8-points [suit info]
@@ -235,15 +283,9 @@
 
 (defn trump-suit-promised-points [suit promised]
   (let [length (count suit)
-        points (- length promised)
-        more-or-less (if (pos? points)
-                       "more"
-                       "less")
-        extra-or-missing (if (pos? points)
-                           points
-                           (- points))]
+        points (- length promised)]
     (when-not (zero? points)
-      [[points :more-or-less-trumps-than-promised extra-or-missing more-or-less]])))
+      [[points :more-or-less-trumps-than-promised promised length]])))
 
 (defn trump-suit-honors [suit]
   (let [points (->> suit
@@ -294,23 +336,20 @@
     (when (pos? points)
       [[points :short-non-trump-suits]])))
 
-(defn trump-opponent-short-suits [hand suit-infos]
-  (let [points (->> (map (fn [suit info]
-                           (let [length (count suit)]
-                             (cond
-                               (and (= info :left)
-                                    (<= length 2))
-                               0.5
-                               (and (= info :right)
-                                    ;; TODO: if left has at least 3 cards, doubleton is reasonable
-                                    (<= length 1))
-                               0.5
-                               :else
-                               0)))
-                         hand suit-infos)
-                    (reduce +))]
-    (when (pos? points)
-      [[points :short-non-trump-opponent-suits]])))
+(defn trump-opponent-short-suit [suit info]
+  (let [length (count suit)]
+    (when (and (<= length 2)
+               (#{:left :right} info))
+      (let [points (cond
+                     (and (= info :left)
+                          (<= length 2))
+                     0.5
+                     (and (= info :right)
+                          (<= length 1))
+                     0.5
+                     :else
+                     0)]
+        [[points :short-non-trump-opponent-suit length info]]))))
 
 (defn trump-suit-points [suit info promised]
   (when (= info :trump)
@@ -327,7 +366,7 @@
                   (repeat promised))
           (trump-other-suit-honors hand suit-infos)
           (trump-other-short-suits hand suit-infos)
-          (trump-opponent-short-suits hand suit-infos)
+          (mapcat trump-opponent-short-suit hand suit-infos)
           ;; TODO: partner short suits
           ;; Points minus
           ;; length plus (need half extra length)
