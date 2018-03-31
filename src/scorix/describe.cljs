@@ -112,7 +112,8 @@
    :trump-basic-correction ["This substraction is necessary for all suit contracts. It compensates for the many trump honor points, trump suit lengh points, and short other suit points added below"]})
 
 (defn format [[_ key & args]]
-  (let [fn-or-format-string (get text key)]
+  (if-let [fn-or-format-string (get text key)]
     (if (fn? fn-or-format-string)
       (apply fn-or-format-string args)
-      (apply gstring/format fn-or-format-string args))))
+      (apply gstring/format fn-or-format-string args))
+    (throw (str "No text for key " key))))

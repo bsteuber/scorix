@@ -216,7 +216,7 @@
         points (* 0.25 (- T-9-count 2))
         reason (str  T-9-count)]
     (when-not (zero? points)
-      [[points :T-9-count-in-SA T-9-count]])))
+      [[points :T-9-count-in-NT T-9-count]])))
 
 (defn no-trump-QJxx-suit-points [suit]
   (when-let [matching (and (not (reasonable-suit? suit))
