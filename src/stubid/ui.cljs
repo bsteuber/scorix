@@ -123,7 +123,7 @@
                                (map-indexed
                                 (fn [index bid-data]
                                   ^{:key index}
-                                  [:td.text-center
+                                  [:td.text-center.align-middle
                                    (when bid-data
                                      (let [{:keys [bid]} bid-data]
                                        (if bid
