@@ -1,6 +1,7 @@
 {:source-paths ["src" "test"]
  :dependencies [[com.bhauman/cljs-test-display "0.1.1"]
-                [reagent "0.8.1" :exclusions [cljsjs/react cljsjs/react-dom]]]
+                [reagent "0.8.1" :exclusions [cljsjs/react cljsjs/react-dom]]
+                [re-frame "0.10.6"]]
  :builds       {:scorix  {:output-dir "resources/public/js/compiled"
                           :asset-path "js/compiled"
                           :target     :browser

@@ -1,11 +1,9 @@
 (ns stubid.ui
-  (:require [reagent.core :as reagent]
+  (:require [re-frame.core :as rf]
             [scorix.core :as scorix]
             [scorix.ui :as scorix-ui]
             [stubid.core :as stu :refer [no-trump spades hearts diamonds clubs]]
             [stubid.schachcafe :as sc]))
-
-(defonce state (reagent/atom {}))
 
 (def player-key
   {0 :partner
@@ -19,35 +17,80 @@
    2 "E"
    3 "S"})
 
-(defn current-dealer []
-  (:dealer @state 3))
+(rf/reg-sub :current-dealer
+            (fn [db _]
+              (:dealer db 3)))
+
+(rf/reg-sub :get-player-hand
+            (fn [db [_ player]]
+              (get-in db [:hands player])))
+
+(rf/reg-sub :get-player-suit
+            (fn [db [_ player suit]]
+              (get-in db [:hands player suit])))
+
+(rf/reg-event-db :set-player-suit
+                 (fn [db [_ player suit cards]]
+                   (assoc-in db [:hands player suit] cards)))
+
+(rf/reg-event-db :set-dealer
+                 (fn [db [_ dealer]]
+                   (assoc db :dealer dealer)))
 
 (defn player-hand [player]
-  (let [dealer (current-dealer)]
+  (let [dealer @(rf/subscribe [:current-dealer])]
     [:<>
      [:div.col-sm-4]
      [:div.col-sm-4
       [:h4.text-center (player-name player)]
       (for [suit (range 4)]
-        (let [get-value #(get-in @state [:hands player suit])
-              set-value #(swap! state assoc-in [:hands player suit] %)]
+        (let [get-value (fn []
+                          @(rf/subscribe [:get-player-suit player suit]))
+              set-value (fn [value]
+                          (rf/dispatch [:set-player-suit player suit value]))]
           ^{:key suit}
           [scorix-ui/suit-cards suit get-value set-value]))
       [:span.d-flex.justify-content-center.align-items-center
        [:div.form-group.form-check-inline
-        {:on-click (fn [_]
-                     (swap! state assoc :dealer player))}
+        {:on-click (fn []
+                     (rf/dispatch [:set-dealer player]))}
         [:input
          {:type :radio
           :read-only true
           :checked (= dealer player)}]
         [:label.ml-1.mt-1 "Dealer"]]]]]))
 
+(rf/reg-sub :config
+            (fn [db _]
+              (:config db)))
+
 (defn random-hands []
-  (vec (scorix/random-deal)))
+  (let [{:keys [min-hcp-n
+                min-hcp-s
+                min-hcp-ns]
+         :or   {min-hcp-n  0
+                min-hcp-s  0
+                min-hcp-ns 0}
+         :as config} @(rf/subscribe [:config])]
+    (loop [tries 0]
+      (if (> tries 10000)
+        (js/alert "Couldn't find valid deal")
+        (let [deal   (scorix/random-deal)
+              hcp-n  (scorix/calc-high-card-points (nth deal 0))
+              hcp-s  (scorix/calc-high-card-points (nth deal 3))
+              hcp-ns (+ hcp-n hcp-s)]
+          (if (and
+               (or (not min-hcp-n)
+                   (>= hcp-n min-hcp-n))
+               (or (not min-hcp-s)
+                   (>= hcp-s min-hcp-s))
+               (or (not min-hcp-ns)
+                   (>= hcp-ns min-hcp-ns)))
+            (vec deal)
+            (recur (inc tries))))))))
 
 (defn bid-order []
-  (case (current-dealer)
+  (case @(rf/subscribe [:current-dealer])
     0 [0 2 3 1]
     1 [1 0 2 3]
     2 [2 3 1 0]
@@ -86,7 +129,7 @@
 
 (defn calculate-bids []
   (loop [prev-bids []
-         player    (current-dealer)]
+         player    @(rf/subscribe [:current-dealer])]
     (if (and
          (>= (count prev-bids) 4)
          (->> prev-bids
@@ -94,7 +137,7 @@
               (every? (fn [bid-info]
                         (not (:bid bid-info))))))
       prev-bids
-      (let [hand (get-in @state [:hands player])
+      (let [hand @(rf/subscribe [:get-player-hand player])
             prev (prev-bids-for-player player prev-bids)
             bids (sc/bids hand prev)]
         (recur (conj prev-bids {:player (player-key player)
@@ -104,12 +147,12 @@
 (defn format-bid [[level suit]]
   [:span {:style {:font-size :x-large}}
    level
-   [:span {:style {:font-size :xx-large}
-           :class (when (#{1 2} suit)
-                    :text-danger)}
-    (if (= suit stu/no-trump)
-      "NT"
-      (scorix-ui/suit-icon suit))]])
+   (if (= suit stu/no-trump)
+     "NT"
+     [:span {:style {:font-size :xx-large}
+             :class (when (#{1 2} suit)
+                      :text-danger)}
+      (scorix-ui/suit-icon suit)])])
 
 (defn bid-table-body []
   (let [bids (calculate-bids)
@@ -132,9 +175,13 @@
                                seq)]))
           seq)]))
 
+(rf/reg-sub :hands
+            (fn [db _]
+              (:hands db)))
+
 (defn bids []
-  (let [hand-counts   (->> @state
-                           :hands
+  (let [hands         @(rf/subscribe [:hands])
+        hand-counts   (->> hands
                            (map (fn [hand]
                                   (->> hand
                                        flatten
@@ -150,7 +197,8 @@
          [:tr
           (for [player (bid-order)]
             ^{:key player}
-            [:th.text-center (player-name player)])]]
+            [:th.text-center {:style {:width "25%"}}
+             (player-name player)])]]
         [bid-table-body]]
 
        :else
@@ -160,16 +208,43 @@
            ^{:key player}
            [:li (player-name player) ": " (nth hand-counts player)])]])]))
 
+(rf/reg-event-db
+ :set-config
+ (fn [db [_ key value]]
+   (assoc-in db [:config key] (let [parsed (js/parseInt value)]
+                                (when (js/Number.isInteger parsed)
+                                  parsed)))))
+
+(defn text-editor [label key]
+  [:span.row
+   [:span.col>label.mr-3 label]
+   [:span.col>input.form-control
+    {:value (key @(rf/subscribe [:config]))
+     :on-change (fn [evt]
+                  (rf/dispatch [:set-config key evt.target.value]))}]])
+
+(rf/reg-event-db :generate-hand
+                 (fn [db _]
+                   (assoc db :hands (random-hands))))
+
+(defn deal-generator []
+  [:div
+   [text-editor "Min HCP N/S" :min-hcp-ns]
+   [text-editor "Min HCP N"   :min-hcp-n]
+   [text-editor "Min HCP S"   :min-hcp-s]
+   [:button.btn.btn-link {:on-click (fn [] (rf/dispatch [:generate-hand]))}
+    "Generate deal"]])
+
 (defn page []
   [:div.container
    [:h2.text-center "Bidding Trainer"]
-   [:button.btn.btn-link {:on-click (fn []
-                                      (swap! state assoc :hands (random-hands)))}
-    "Generate deal"]
    [:div.row
-    [:div.col-lg-8>div.row
+    [:div.col-lg-7>div.row
      (for [player (range 4)]
        ^{:key player}
        [player-hand player])]
+    [:div.col-lg-1]
     [:div.col-lg-4
-     [bids]]]])
+     [deal-generator]
+     [:div.mt-4
+      [bids]]]]])

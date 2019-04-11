@@ -39,10 +39,13 @@
 (defn score [results]
   (sum first results))
 
+(defn calc-high-card-points [hand]
+  (->> hand
+       (apply concat)
+       (sum card-score)))
+
 (defn high-card-points [hand]
-  (let [points (->> hand
-                    (apply concat)
-                    (sum card-score))]
+  (let [points (calc-high-card-points hand)]
     [[points :high-card-points]]))
 
 (defn ace-ten-points [hand]
