@@ -70,7 +70,7 @@
     [:color? :suit] suit-openings
     [:nt? :suit]    nt-openings]])
 
-(def partner-1-suit?
+(def bids-1suit?
   [:and [:= :partner-level 1] [:color? :partner-suit]])
 
 (def can-raise?
@@ -86,9 +86,27 @@
    [:= :level 2]
    [:= :suit :partner-suit]])
 
+(def yp-10-11?
+  [:<= 10 [:yp 4 :partner-suit] 11])
+
+(def raise-level-3
+  [:and
+   [:= :level 3]
+   [:= :suit :partner-suit]])
+
+(def yp-12+?
+  [:<= 12 [:yp 4 :partner-suit]])
+
+(def raise-jacobi
+  [:and
+   [:= :level 2]
+   [:= :suit no-trump]])
+
 (def raise-partner
   [:cond
-   yp-5-9? raise-level-2])
+   yp-5-9?   raise-level-2
+   yp-10-11? raise-level-3
+   yp-12+?   raise-jacobi])
 
 (def can-respond?
   [:>= :gp 5])
@@ -127,12 +145,12 @@
    level-1-nt?       level-1-nt-response
    ])
 
-(def suit-1-responses
+(def cont-1suit
   [:cond
    can-raise?   raise-partner
    can-respond? respond-suit-1])
 
-(def partner-1-nt?
+(def bids-1nt?
   [:and
    [:nt? :partner-suit]
    [:= :partner-level 1]])
@@ -140,7 +158,7 @@
 (def nt-1-major-responses
   [:element :suit :biddable-major-5+])
 
-(def partner-1-nt-responses
+(def cont-1nt
   [:and
    [:= :level 2]
    [:cond
@@ -148,19 +166,33 @@
     :biddable-major-5+ nt-1-major-responses
     :else              [:= :suit diamonds]]])
 
+(def bids-2nt?
+  [:and
+   [:nt? :partner-suit]
+   [:= :partner-level 2]])
+
+(def cont-2nt
+  [:cond
+   [:>= [:longest-length :diamonds-or-higher] 5]
+   [:bid-match? 3 [:highest-longest :diamonds-or-higher]]
+
+   :else
+   [:bid-match? 3 clubs]])
+
 (def responses
   [:and
    :partner-opened?
    [:cond
-    partner-1-suit? suit-1-responses
-    partner-1-nt?   partner-1-nt-responses]])
+    bids-1suit? cont-1suit
+    bids-1nt?   cont-1nt
+    bids-2nt?   cont-2nt]])
 
-(def bids-1-nt-2-clubs?
+(def bids-1nt-2c?
   [:bids-match?
    [:me 1 no-trump]
    [:partner 2 clubs]])
 
-(def cont-1-nt-2-clubs
+(def cont-1nt-2c
   [:cond
    [:>= :gp 25]
    [:and [:= :level 2] [:= :suit diamonds]]
@@ -183,24 +215,57 @@
    :else
    [:fail "Oups, I opened 1NT with 4441 :("]])
 
-(def bids-1-nt-2-diamonds?
+(def bids-1nt-2d?
   [:bids-match?
    [:me 1 no-trump]
    [:partner 2 diamonds]])
 
-(def cont-1-nt-2-diamonds
-  )
+(def cont-1nt-2d
+  [:cond
+   [:>= [:longest-length :majors] 5]
+   [:bid-match? 2 [:highest-longest :majors]]
+
+   :nt-distribution?
+   [:bid-match? 2 no-trump]
+
+   [:>= [:longest-length :minors] 5]
+   [:bid-match? 3 [:highest-longest :minors]]])
+
+(def bids-1nt-2c-2d?
+  [:bids-match?
+   [:partner 1 no-trump]
+   [:me 2 clubs]
+   [:partner 2 diamonds]])
+
+(def cont-1nt-2c-2d
+  [:bid-match? 2 hearts])
 
 (def nt-1-continuation
   [:cond
-   bids-1-nt-2-clubs?    cont-1-nt-2-clubs
-   bids-1-nt-2-diamonds? cont-1-nt-2-diamonds])
+   bids-1nt-2c?    cont-1nt-2c
+   bids-1nt-2c-2d? cont-1nt-2c-2d
+   bids-1nt-2d?    cont-1nt-2d])
+
+(def bids-2nt-3c?
+  [:bids-match?
+   [:me 2 no-trump]
+   [:partner 3 clubs]])
+
+(def cont-2nt-3c
+  [:cond
+   [:>= [:longest-length :diamonds-or-higher] 4]
+   [:bid-match? 3 [:lowest-longest :diamonds-or-higher]]])
+
+(def nt-2-continuation
+  [:cond
+   bids-2nt-3c? cont-2nt-3c])
 
 (def rules
   [:or
    openings
    responses
-   nt-1-continuation])
+   nt-1-continuation
+   nt-2-continuation])
 
 (defn bid-valid?
   ([hand bid]

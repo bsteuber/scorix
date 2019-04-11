@@ -10,4 +10,5 @@
 
 (defn ^:export reload []
   (println "reloaded")
+  (js/console.clear)
   (run))

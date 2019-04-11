@@ -74,7 +74,17 @@
                   [{:player :partner
                     :bid [1 hearts]}])
          [[2 clubs]
-          [2 diamonds]])))
+          [2 diamonds]]))
+  (is (= (sc/bids ["Jxxx" "ATxxx" "x" "K98"]
+                  [{:player :partner
+                    :bid [1 hearts]}])
+         [[3 hearts]]))
+  (binding [stu/*debug?* #{[2 no-trump]}]
+
+    (is (= (sc/bids ["J9xx" "ATxx" "Ax" "Axx"]
+                    [{:player :partner
+                      :bid [1 hearts]}])
+           [[2 no-trump]]))))
 
 (deftest nt-1-responses
   (is (= (sc/bids ["9654" "J986" "876" "92"]
@@ -119,6 +129,3 @@
                    {:player :partner
                     :bid [2 clubs]}])
          [[2 no-trump]])))
-
-
-(binding [stu/*debug?* #{[2 spades]}])

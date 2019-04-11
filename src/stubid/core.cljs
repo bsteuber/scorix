@@ -24,7 +24,7 @@
   (let [[key & args] (if (vector? rule)
                        rule
                        [rule])
-        _ (dbg bid "start" key (subs (pr-str args) 0 45) ":")
+        _ (dbg bid "start" key bid (subs (pr-str args) 0 45) ":")
         [level suit] bid
         res          (binding [*indent* (inc *indent*)]
                        (eval-rule {:key   key
@@ -152,8 +152,9 @@
 (defmethod eval-rule :level [{:keys [level]}]
   level)
 
-(defmethod eval-rule :bid-match? [{:keys [bid args]}]
-  (= bid args))
+(defmethod eval-rule :bid-match? [{:keys [bid]
+                                   :as context}]
+  (= bid (eval-args context)))
 
 (defn round-points [points]
   (js/Math.round (- points 0.1)))
@@ -213,8 +214,8 @@
             :trump))
         (range 4)))
 
-(defmethod eval-rule :yp [{:keys [hand args]}]
-  (let [[promised suit] args
+(defmethod eval-rule :yp [{:keys [hand] :as context}]
+  (let [[promised suit] (eval-args context)
         yp              (scorix/trump-points hand (trump-suit-info suit) promised)
         rounded-yp      (round-points (scorix/score yp))]
     rounded-yp))
@@ -224,6 +225,33 @@
 
 (defmethod eval-rule :highest-suit-bid? [{:keys [hand suit]}]
   (= suit (first (first (find-longest-suits hand)))))
+
+(def majors [spades hearts])
+(def minors [diamonds clubs])
+
+(defn longest-of [hand suits]
+  (let [length (->> suits
+                    (map (comp count hand))
+                    (apply max))
+        suits (->> suits
+                   (filter #(= length (count (hand %)))))]
+    (when (seq suits)
+      [length suits])))
+
+(defmethod eval-rule :longest-length [{:keys [hand] :as context}]
+  (let [[suits]    (eval-args context)
+        [length _] (longest-of hand suits)]
+    length))
+
+(defmethod eval-rule :highest-longest [{:keys [hand] :as context}]
+  (let [[suits]        (eval-args context)
+        [length suits] (longest-of hand suits)]
+    (first suits)))
+
+(defmethod eval-rule :lowest-longest [{:keys [hand] :as context}]
+  (let [[suits]        (eval-args context)
+        [length suits] (longest-of hand suits)]
+    (last suits)))
 
 (defmethod eval-rule :distribution-4441? [{:keys [hand]}]
   (let [[longest-suits _] (find-longest-suits hand)]
@@ -287,6 +315,15 @@
 
 (defmethod eval-rule :minor? [{:keys [suit]}]
   (minor-suit? suit))
+
+(defmethod eval-rule :majors [_]
+  majors)
+
+(defmethod eval-rule :minors [_]
+  minors)
+
+(defmethod eval-rule :diamonds-or-higher [_]
+  [spades hearts diamonds])
 
 (defn nt-hand? [hand]
   (let [lengths (map count hand)]

@@ -128,21 +128,22 @@
        prev-bids))
 
 (defn calculate-bids []
-  (loop [prev-bids []
-         player    @(rf/subscribe [:current-dealer])]
-    (if (and
-         (>= (count prev-bids) 4)
-         (->> prev-bids
-              (take-last 3)
-              (every? (fn [bid-info]
-                        (not (:bid bid-info))))))
-      prev-bids
-      (let [hand @(rf/subscribe [:get-player-hand player])
-            prev (prev-bids-for-player player prev-bids)
-            bids (sc/bids hand prev)]
-        (recur (conj prev-bids {:player (player-key player)
-                                :bid (first bids)})
-               (next-player player))))))
+  (binding [stu/*debug?* false]
+    (loop [prev-bids []
+           player    @(rf/subscribe [:current-dealer])]
+      (if (and
+           (>= (count prev-bids) 4)
+           (->> prev-bids
+                (take-last 3)
+                (every? (fn [bid-info]
+                          (not (:bid bid-info))))))
+        prev-bids
+        (let [hand @(rf/subscribe [:get-player-hand player])
+              prev (prev-bids-for-player player prev-bids)
+              bids (sc/bids hand prev)]
+          (recur (conj prev-bids {:player (player-key player)
+                                  :bid (first bids)})
+                 (next-player player)))))))
 
 (defn format-bid [[level suit]]
   [:span {:style {:font-size :x-large}}
