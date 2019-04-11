@@ -102,8 +102,10 @@
                (next-player player))))))
 
 (defn format-bid [[level suit]]
-  [:span level
-   [:span {:class (when (#{1 2} suit)
+  [:span {:style {:font-size :x-large}}
+   level
+   [:span {:style {:font-size :xx-large}
+           :class (when (#{1 2} suit)
                     :text-danger)}
     (if (= suit stu/no-trump)
       "NT"
