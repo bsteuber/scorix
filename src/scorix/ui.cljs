@@ -2,7 +2,9 @@
   (:require [clojure.string :as str]
             [reagent.core :as reagent]
             [scorix.core :as scorix]
-            [scorix.describe :as describe]))
+            [scorix.describe :as describe]
+            [stubid.schachcafe :as sc]
+            [stubid.core :as stu]))
 
 (defn suit-icon [index]
   (get "♠♥♦♣" index))
@@ -311,6 +313,25 @@
                                         (swap! state assoc :hand ["" "" "" ""]))}
       "Clear hand"])])
 
+(defn is-schachcafe? []
+  (try
+    (let [params (-> js/document.location (js/URL.) .-searchParams)]
+      (= "true" (.get params "schachcafe")))
+    (catch :default e
+      false)))
+
+(defn bids []
+  [:h4 "Schachcafe-Opening: "
+   [:span
+    (or (for [[level suit] (sc/bids (:hand @state))]
+          [:span level
+           [:span {:class (when (#{1 2} suit)
+                            :text-danger)}
+            (if (= suit stu/no-trump)
+              "NT"
+              (suit-icon suit))]])
+        "pass")]])
+
 (defn footer []
   [:div
    (popup-info [disclaimer] "Limitations of this software")
@@ -323,6 +344,10 @@
    [header]
    [tools]
    [suit-inputs]
-   [eval-type-input]
+   (when (and (is-schachcafe?)
+              (not (check-inputs)))
+     [bids])
+   (when-not (is-schachcafe?)
+     [eval-type-input])
    [eval-output]
    [footer]])

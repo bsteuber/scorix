@@ -8,4 +8,6 @@
   (when-let [node (.getElementById js/document "container")]
     (r/render [ui/page] node)))
 
-(run)
+(defn ^:export reload []
+  (println "reloaded")
+  (run))

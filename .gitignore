@@ -11,3 +11,6 @@ pom.xml.asc
 .hg/
 figwheel_server.log
 compiled/
+/package-lock.json
+/.shadow-cljs/
+node_modules
