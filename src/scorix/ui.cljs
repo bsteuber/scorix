@@ -37,40 +37,45 @@
 (defn remove-duplicates [suit]
   (str/replace suit #"([^x])\1+" ffirst))
 
+(defn suit-cards [index get-value set-value]
+  [:div.input-group.mt-3.mt-lg-1
+   [:div.input-group-prepend
+    [:span.input-group-text
+     {:class (if (#{0 3} index)
+               ""
+               "text-danger")
+      :style {:font-size "20px"
+              :width "1.6em"}}
+     (suit-icon index)]]
+   [:input.form-control
+    {:on-change (fn [evt]
+                  (let [suit (-> evt.target.value
+                                 (str/replace #"[akqjt]" #(str/upper-case %))
+                                 (str/replace #"[^AKQJT98765432x]" ""))
+                        sorted-and-distinct (->> suit
+                                                 (sort-by scorix/card->val)
+                                                 str/join
+                                                 remove-duplicates)]
+                    (set-value sorted-and-distinct)))
+     :type :text
+     :placeholder (get ["e.g. AKQxx"
+                        "e.g. JT8x"
+                        "e.g. xxx"
+                        "e.g. x"]
+                       index)
+     :tab-index (inc index)
+     :value (get-value)}]])
+
 (defn suit-input [index]
-  ^{:key index}
-  [:div.row
-   [:div.col-lg-3
-    [:div.input-group.mt-3.mt-lg-1
-     [:div.input-group-prepend
-      [:span.input-group-text
-       {:class (if (#{0 3} index)
-                 ""
-                 "text-danger")
-        :style {:font-size "20px"
-                :width "1.6em"}}
-       (suit-icon index)]]
-     [:input.form-control
-      {:on-change (fn [evt]
-                    (let [suit (-> evt.target.value
-                                   (str/replace #"[akqjt]" #(str/upper-case %))
-                                   (str/replace #"[^AKQJT98765432x]" ""))
-                          sorted-and-distinct (->> suit
-                                                   (sort-by scorix/card->val)
-                                                   str/join
-                                                   remove-duplicates)]
-                      (swap! state assoc-in [:hand index] sorted-and-distinct)))
-       :type :text
-       :placeholder (get ["e.g. AKQxx"
-                          "e.g. JT8x"
-                          "e.g. xxx"
-                          "e.g. x"]
-                         index)
-       :tab-index (inc index)
-       :value (get-in @state [:hand index])}]]]
-   [:div.col-lg-9
-    (doall (map (partial suit-info-button index)
-                [nil :left :partner :right :trump]))]])
+  (let [get-value #(get-in @state [:hand index])
+        set-value #(swap! state assoc-in [:hand index] %)]
+    ^{:key index}
+    [:div.row
+     [:div.col-lg-3
+      [suit-cards index get-value set-value]]
+     [:div.col-lg-9
+      (doall (map (partial suit-info-button index)
+                  [nil :left :partner :right :trump]))]]))
 
 (defn suit-inputs []
   [:div.form-group
@@ -313,25 +318,6 @@
                                         (swap! state assoc :hand ["" "" "" ""]))}
       "Clear hand"])])
 
-(defn is-schachcafe? []
-  (try
-    (let [params (-> js/document.location (js/URL.) .-searchParams)]
-      (= "true" (.get params "schachcafe")))
-    (catch :default e
-      false)))
-
-(defn bids []
-  [:h4 "Schachcafe-Opening: "
-   [:span
-    (or (for [[level suit] (sc/bids (:hand @state))]
-          [:span level
-           [:span {:class (when (#{1 2} suit)
-                            :text-danger)}
-            (if (= suit stu/no-trump)
-              "NT"
-              (suit-icon suit))]])
-        "pass")]])
-
 (defn footer []
   [:div
    (popup-info [disclaimer] "Limitations of this software")
@@ -344,10 +330,6 @@
    [header]
    [tools]
    [suit-inputs]
-   (when (and (is-schachcafe?)
-              (not (check-inputs)))
-     [bids])
-   (when-not (is-schachcafe?)
-     [eval-type-input])
+   [eval-type-input]
    [eval-output]
    [footer]])

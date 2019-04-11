@@ -5,6 +5,7 @@
             [stubid.schachcafe-test]))
 
 (defn run []
+  (js/console.clear)
   (run-tests
    (test-display/init! "app")
    'stubid.core-test

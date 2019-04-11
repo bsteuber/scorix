@@ -1,5 +1,6 @@
 (ns stubid.core
-  (:require [scorix.core :as scorix]))
+  (:require [scorix.core :as scorix]
+            [clojure.string :as str]))
 
 (def spades 0)
 (def hearts 1)
@@ -10,24 +11,39 @@
 (defmulti eval-rule :key)
 
 (def ^:dynamic *debug?* false)
+(def ^:dynamic *indent* 0)
+
+(defn dbg [bid & args]
+  (when (or (= *debug?* true)
+            (when (set? *debug?*)
+              (*debug?* bid)))
+    (let [space (str/join (repeat (* 2 *indent*) " "))]
+      (apply println space args))))
 
 (defn apply-rule [rule hand bid bids]
   (let [[key & args] (if (vector? rule)
                        rule
                        [rule])
-        _ (when *debug?*
-            (print "apply" key bid))
+        _ (dbg bid "start" key (subs (pr-str args) 0 45) ":")
         [level suit] bid
-        res          (eval-rule {:key   key
-                                 :args  args
-                                 :bids  bids
-                                 :bid   bid
-                                 :level level
-                                 :suit  suit
-                                 :hand  hand})]
-    (when *debug?*
-      (println " ->" (boolean res)))
+        res          (binding [*indent* (inc *indent*)]
+                       (eval-rule {:key   key
+                                   :args  args
+                                   :bids  bids
+                                   :bid   bid
+                                   :level level
+                                   :suit  suit
+                                   :hand  hand}))]
+    (dbg bid "end" key res)
     res))
+
+(defn eval-args [{:keys [hand bid bids args]}]
+  (->> args
+       (map (fn [rule-or-constant]
+              (if (or (vector? rule-or-constant)
+                      (keyword? rule-or-constant))
+                (apply-rule rule-or-constant hand bid bids)
+                rule-or-constant)))))
 
 (def all-bids
   (for [level (range 1 8)
@@ -42,6 +58,9 @@
 (defmethod eval-rule :else [_]
   true)
 
+(defmethod eval-rule :fail [{:keys [args]}]
+  (apply println "FAIL:" args))
+
 (defmethod eval-rule :not [{:keys [hand bid bids args]}]
   (not (apply-rule (first args) hand bid bids)))
 
@@ -55,21 +74,24 @@
           (apply-rule rule hand bid bids))
         args))
 
-(defn eval-numeric [{:keys [hand bid bids args]}]
-  (->> args
-       (map (fn [rule-or-number]
-              (if (number? rule-or-number)
-                rule-or-number
-                (apply-rule rule-or-number hand bid bids))))))
-
 (defmethod eval-rule :<= [options]
-  (apply <= (eval-numeric options)))
+  (apply <= (eval-args options)))
 
 (defmethod eval-rule :>= [options]
-  (apply >= (eval-numeric options)))
+  (apply >= (eval-args options)))
 
 (defmethod eval-rule := [options]
-  (apply = (eval-numeric options)))
+  (apply = (eval-args options)))
+
+(defmethod eval-rule :element [options]
+  (let [[elt coll] (eval-args options)]
+    (some #{elt} coll)))
+
+(defmethod eval-rule :suit-under [options]
+  (apply > (eval-args options)))
+
+(defmethod eval-rule :suit-over [options]
+  (apply < (eval-args options)))
 
 (defmethod eval-rule :cond [{:keys [hand bid bids args]}]
   (when-let [rule (->> args
@@ -82,16 +104,24 @@
 (defn no-bids-yet? [bids]
   (not (some :bid bids)))
 
-(defmethod eval-rule :first-bid [{:keys [bids]}]
+(defmethod eval-rule :opening? [{:keys [bids]}]
   (no-bids-yet? bids))
 
-(defmethod eval-rule :undisturbed [{:keys [bids]}]
+(defmethod eval-rule :bids-match? [{:keys [args bids]}]
+  (->> bids
+       (filter :bid)
+       (map (fn [{:keys [player bid]}]
+              (let [[level suit] bid]
+                [player level suit])))
+       (= args)))
+
+(defmethod eval-rule :undisturbed? [{:keys [bids]}]
   (not (some (fn [{:keys [player bid]}]
                (and bid
                     (#{:left :right} player)))
              bids)))
 
-(defmethod eval-rule :partner-opened [{:keys [bids]}]
+(defmethod eval-rule :partner-opened? [{:keys [bids]}]
   (->> bids
        (filter :bid)
        first
@@ -108,11 +138,13 @@
                            (filter some?))]
     [longest-suits longest-length]))
 
-(defmethod eval-rule :suit-bid [{:keys [suit]}]
-  (not= no-trump suit))
+(defmethod eval-rule :color? [context]
+  (let [[suit] (eval-args context)]
+    (not= no-trump suit)))
 
-(defmethod eval-rule :nt-bid [{:keys [suit]}]
-  (= no-trump suit))
+(defmethod eval-rule :nt? [context]
+  (let [[suit] (eval-args context)]
+    (= no-trump suit)))
 
 (defmethod eval-rule :suit [{:keys [suit]}]
   suit)
@@ -120,10 +152,13 @@
 (defmethod eval-rule :level [{:keys [level]}]
   level)
 
+(defmethod eval-rule :bid-match? [{:keys [bid args]}]
+  (= bid args))
+
 (defn round-points [points]
   (js/Math.round (- points 0.1)))
 
-(defmethod eval-rule :gcp [{:keys [hand]}]
+(defmethod eval-rule :gp [{:keys [hand]}]
   (round-points
    (scorix/score
     (scorix/ground-points hand [nil nil nil nil]))))
@@ -132,15 +167,45 @@
   (let [[_ length] (find-longest-suits hand)]
     length))
 
-(defmethod eval-rule :partner-length [{:keys [hand suit args bids]}]
-  (let [[min-len max-len] args
-        max-len           (or max-len 13)
-        length            (count (hand suit))]
-    (and
-     (<= min-len length max-len)
-     (->> bids
-          (some (fn [{:keys [player bid]}]
-                  (and bid (= player :partner))))))))
+(defmethod eval-rule :length-in [{:keys [hand]
+                                  :as context}]
+  (let [[suit] (eval-args context)]
+    (when (and suit (not= no-trump suit))
+      (count (hand suit)))))
+
+(defmethod eval-rule :length-over-suit [{:keys [hand]
+                                         :as context}]
+  (let [[suit] (eval-args context)]
+    (->> (range 4)
+         (filter (partial > suit))
+         (map (comp count hand))
+         (apply max 0))))
+
+(defmethod eval-rule :length-under-suit [{:keys [hand]
+                                         :as context}]
+  (let [[suit] (eval-args context)]
+    (->> (range 4)
+         (filter (partial < suit))
+         (map (comp count hand))
+         (apply max 0))))
+
+(defmethod eval-rule :partner-opened? [{:keys [bids]}]
+  (let [bids (filter :bid bids)]
+    (and (= 1 (count bids))
+         (= :partner (:player (first bids))))))
+
+(defn last-partner-bid [bids]
+  (->> bids
+       (filter :bid)
+       (filter (comp #{:partner} :player))
+       last
+       :bid))
+
+(defmethod eval-rule :partner-level [{:keys [bids]}]
+  (first (last-partner-bid bids)))
+
+(defmethod eval-rule :partner-suit [{:keys [bids]}]
+  (second (last-partner-bid bids)))
 
 (defn trump-suit-info [trump-suit]
   (mapv (fn [suit]
@@ -148,26 +213,23 @@
             :trump))
         (range 4)))
 
-(defmethod eval-rule :partner-yp-range [{:keys [hand suit args bids]}]
-  (let [[partner-length
-         min-yp
-         max-yp]   args
-        max-yp     (or max-yp 100)
-        yp         (scorix/trump-points hand (trump-suit-info suit) partner-length)
-        rounded-yp (round-points yp)]
-    (<= min-yp rounded-yp max-yp)))
+(defmethod eval-rule :yp [{:keys [hand args]}]
+  (let [[promised suit] args
+        yp              (scorix/trump-points hand (trump-suit-info suit) promised)
+        rounded-yp      (round-points (scorix/score yp))]
+    rounded-yp))
 
-(defmethod eval-rule :longest-suit-bid [{:keys [hand suit]}]
+(defmethod eval-rule :longest-suit-bid? [{:keys [hand suit]}]
   (some #{suit} (first (find-longest-suits hand))))
 
-(defmethod eval-rule :highest-suit-bid [{:keys [hand suit]}]
+(defmethod eval-rule :highest-suit-bid? [{:keys [hand suit]}]
   (= suit (first (first (find-longest-suits hand)))))
 
-(defmethod eval-rule :distribution-4441 [{:keys [hand]}]
+(defmethod eval-rule :distribution-4441? [{:keys [hand]}]
   (let [[longest-suits _] (find-longest-suits hand)]
     (= 3 (count longest-suits))))
 
-(defmethod eval-rule :majors-44 [{:keys [hand]}]
+(defmethod eval-rule :majors-44? [{:keys [hand]}]
   (->> hand
        (take 2)
        (map count)
@@ -196,7 +258,7 @@
 (def major-suit? #{0 1})
 (def minor-suit? #{2 3})
 
-(defmethod eval-rule :lowest-best-minor [{:keys [hand suit]}]
+(defmethod eval-rule :lowest-best-minor? [{:keys [hand suit]}]
   (let [[longest-suits _] (find-longest-suits hand)]
     (->> longest-suits
          (filter minor-suit?)
@@ -204,20 +266,27 @@
          last
          (= suit))))
 
-(defmethod eval-rule :best-longest-suit [{:keys [hand suit]}]
+(defmethod eval-rule :best-longest-suit? [{:keys [hand suit]}]
   (let [[longest-suits _] (find-longest-suits hand)
         best-suits        (find-best-suits hand longest-suits)]
     (some #{suit} best-suits)))
 
-(defmethod eval-rule :major [{:keys [suit]}]
+(defmethod eval-rule :biddable-major-5+ [{:keys [hand]}]
+  (->> [spades hearts]
+       (filter (fn [suit]
+                 (let [cards (hand suit)]
+                   (when
+                       (and
+                        (>= (count cards) 5)
+                        (scorix/reasonable-suit? cards))
+                     suit))))
+       seq))
+
+(defmethod eval-rule :major? [{:keys [suit]}]
   (major-suit? suit))
 
-(defmethod eval-rule :minor [{:keys [suit]}]
+(defmethod eval-rule :minor? [{:keys [suit]}]
   (minor-suit? suit))
-
-(defn bid-on-level [level suits]
-  (for [suit suits]
-    [level suit]))
 
 (defn nt-hand? [hand]
   (let [lengths (map count hand)]
@@ -228,5 +297,5 @@
               count)
          1))))
 
-(defmethod eval-rule :nt-distribution [{:keys [hand]}]
+(defmethod eval-rule :nt-distribution? [{:keys [hand]}]
   (nt-hand? hand))

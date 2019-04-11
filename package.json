@@ -1,7 +1,7 @@
 {
   "scripts": {
-    "dev": "shadow-cljs watch app test",
-    "release": "shadow-cljs release app"
+    "dev": "shadow-cljs watch app stubid test",
+    "release": "shadow-cljs release app stubid"
   },
   "dependencies": {
     "create-react-class": "^15.6.3",

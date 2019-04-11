@@ -1,22 +1,27 @@
 (ns scorix.core
   (:require [clojure.string :as str]))
 
-(defn random-hand []
+(defn random-deal []
   (let [deck (for [suit (range 4)
                    val (range 13)]
                [suit val])
         format-card (partial get "AKQJT98xxxxxx")]
     (->> deck
          shuffle
-         (take 13)
-         sort
-         (partition-by first)
-         (map (fn [suit]
-                (->> suit
-                     (map (fn [card]
-                            (format-card (second card))))
-                     (apply str))))
-         vec)))
+         (partition 13)
+         (map (fn [hand]
+                (->> hand
+                     sort
+                     (partition-by first)
+                     (map (fn [suit]
+                            (->> suit
+                                 (map (fn [card]
+                                        (format-card (second card))))
+                                 (apply str))))
+                     vec))))))
+
+(defn random-hand []
+  (first (random-deal)))
 
 (defn card-score [card]
   (case card

@@ -61,7 +61,64 @@
   (is (= (sc/bids ["AJ94" "AK98" "AJ62" "A"])
          [[1 no-trump]])))
 
-(deftest level-1-responses
-  (is (= (sc/bids ["AJ94" "J986" "876" "92"] [{:player :partner
-                                               :bid [1 spades]}])
-         [[2 spades]])))
+(deftest suit-1-responses
+  (is (= (sc/bids ["AJ94" "J986" "876" "92"]
+                  [{:player :partner
+                    :bid [1 spades]}])
+         [[2 spades]]))
+  (is (= (sc/bids [ "876" "92" "AJ94" "J986"]
+                  [{:player :partner
+                    :bid [1 hearts]}])
+         [[1 no-trump]]))
+  (is (= (sc/bids [ "A76" "92" "AJ94" "J986"]
+                  [{:player :partner
+                    :bid [1 hearts]}])
+         [[2 clubs]
+          [2 diamonds]])))
+
+(deftest nt-1-responses
+  (is (= (sc/bids ["9654" "J986" "876" "92"]
+                  [{:player :partner
+                    :bid [1 no-trump]}])
+         [[2 clubs]]))
+  (is (= (sc/bids ["AJ654" "J986" "87" "92"]
+                  [{:player :partner
+                    :bid [1 no-trump]}])
+         [[2 spades]]))
+  (is (= (sc/bids ["J9863" "AJ654" "8" "92"]
+                  [{:player :partner
+                    :bid [1 no-trump]}])
+         [[2 hearts]]))
+  (is (= (sc/bids ["J9863" "J654" "A" "92"]
+                  [{:player :partner
+                    :bid [1 no-trump]}])
+         [[2 diamonds]])))
+
+(deftest after-1-nt-2-clubs
+  (is (= (sc/bids ["AKQ863" "AKQ4" "A" "KQ"]
+                  [{:player :me
+                    :bid [1 no-trump]}
+                   {:player :partner
+                    :bid [2 clubs]}])
+         [[2 diamonds]]))
+  (is (= (sc/bids ["AKQ863" "AKQ4" "5" "63"]
+                  [{:player :me
+                    :bid [1 no-trump]}
+                   {:player :partner
+                    :bid [2 clubs]}])
+         [[2 spades]]))
+  (is (= (sc/bids ["AKQ8" "AKQ54" "53" "63"]
+                  [{:player :me
+                    :bid [1 no-trump]}
+                   {:player :partner
+                    :bid [2 clubs]}])
+         [[2 hearts]]))
+  (is (= (sc/bids ["AKQ8" "AKQ5" "Q63" "K3"]
+                  [{:player :me
+                    :bid [1 no-trump]}
+                   {:player :partner
+                    :bid [2 clubs]}])
+         [[2 no-trump]])))
+
+
+(binding [stu/*debug?* #{[2 spades]}])
