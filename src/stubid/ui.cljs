@@ -3,7 +3,8 @@
             [scorix.core :as scorix]
             [scorix.ui :as scorix-ui]
             [stubid.core :as stu :refer [no-trump spades hearts diamonds clubs]]
-            [stubid.schachcafe :as sc]))
+            [stubid.schachcafe :as sc]
+            [clojure.string :as str]))
 
 (def player-key
   {0 :partner
@@ -60,51 +61,65 @@
           :checked (= dealer player)}]
         [:label.ml-1.mt-1 "Dealer"]]]]]))
 
-(rf/reg-sub :config
-            (fn [db _]
-              (:config db)))
+(rf/reg-sub
+ :config
+ (fn [db _]
+   (:config db)))
 
-(defn random-hands [config]
-  (let [{:keys [min-hcp-n
-                min-hcp-s
-                min-hcp-ns
-                max-hcp-n
-                max-hcp-s
-                max-hcp-ns]
-         :or   {min-hcp-n  0
-                min-hcp-s  0
-                min-hcp-ns 0
-                max-hcp-n  40
-                max-hcp-s  40
-                max-hcp-ns 40}} config
-        min-hcp-ns              (max min-hcp-ns
-                                     (+ min-hcp-n
-                                        min-hcp-s))
-        max-hcp-ns              (min max-hcp-ns
-                                     (+ max-hcp-n
-                                        max-hcp-s))
-        start-n?                (<= (- max-hcp-n
-                                       min-hcp-n)
-                                    (- max-hcp-s
-                                       min-hcp-s))
-        [hand-1-min hand-1-max] (if start-n?
-                                  [min-hcp-n max-hcp-n]
-                                  [min-hcp-s max-hcp-s])
-        [hand-1 remaining-1]    (scorix/pseudo-random-hand
-                                 scorix/full-deck {:min-hcp hand-1-min
-                                                   :max-hcp hand-1-max})
-        hcp-1                   (scorix/calc-high-card-points hand-1)
-        hand-2-min              (max 0 (- min-hcp-ns hcp-1))
-        hand-2-max              (- max-hcp-ns hcp-1)
-        [hand-2 remaining-2]    (scorix/pseudo-random-hand
-                                 remaining-1 {:min-hcp hand-2-min
-                                              :max-hcp hand-2-max})
-        [hand-3 hand-4]         (->> remaining-2
-                                     (split-at 13)
-                                     (map scorix/format-hand))]
-    (if start-n?
-      [hand-1 hand-3 hand-4 hand-2]
-      [hand-2 hand-3 hand-4 hand-1])))
+(rf/reg-sub
+ :interval-config
+ :<- [:config]
+ (fn [{:keys [hcp-n
+              hcp-s
+              hcp-ns]}]
+   {:hcp-n  (stu/->interval hcp-n)
+    :hcp-s  (stu/->interval hcp-s)
+    :hcp-ns (stu/->interval hcp-ns)}))
+
+(defn infer-config [config]
+  (loop [config config]
+    (let [{:keys [hcp-n
+                  hcp-s
+                  hcp-ns]} config
+          hcp-n            (stu/interval-restrict hcp-n [0 37])
+          hcp-s            (stu/interval-restrict hcp-s [0 37])
+          hcp-ns           (stu/interval-restrict hcp-ns [0 40])
+          hcp-ns           (stu/interval-restrict hcp-ns (stu/interval+ hcp-n hcp-s))
+          hcp-n            (stu/interval-restrict hcp-n (stu/interval- hcp-ns hcp-s))
+          hcp-s            (stu/interval-restrict hcp-s (stu/interval- hcp-ns hcp-n))
+          new-config       {:hcp-n  hcp-n
+                            :hcp-s  hcp-s
+                            :hcp-ns hcp-ns}]
+      (stu/check-interval hcp-n)
+      (stu/check-interval hcp-s)
+      (stu/check-interval hcp-ns)
+      (if (= new-config config)
+        new-config
+        (recur new-config)))))
+
+(rf/reg-sub
+ :inferred-config
+ :<- [:interval-config]
+ (fn [config _]
+   (try
+     (infer-config config)
+     (catch :default e
+       nil))))
+
+(defn random-hands [{:keys [hcp-n hcp-s hcp-ns]}]
+  (let [[hand-n remaining-1] (scorix/pseudo-random-hand
+                              scorix/full-deck {:hcp-range hcp-n})
+        real-hcp-n           (scorix/calc-high-card-points hand-n)
+        hcp-n                [real-hcp-n real-hcp-n]
+        hcp-s                (stu/interval-restrict
+                              hcp-s
+                              (stu/interval- hcp-ns hcp-n))
+        [hand-s remaining-2] (scorix/pseudo-random-hand
+                              remaining-1 {:hcp-range hcp-s})
+        [hand-w hand-e]      (->> remaining-2
+                                  (split-at 13)
+                                  (map scorix/format-hand))]
+    [hand-n hand-w hand-e hand-s]))
 
 (defn bid-order []
   (case @(rf/subscribe [:current-dealer])
@@ -228,40 +243,43 @@
 
 (rf/reg-event-db
  :set-config
- (fn [db [_ key value]]
+ (fn [db [_ key interval-key value]]
    (let [parsed (js/parseInt value)]
      (if (js/Number.isInteger parsed)
-       (assoc-in db [:config key] parsed)
-       (update db :config dissoc key)))))
+       (assoc-in db [:config key interval-key] parsed)
+       (update-in db [:config key] dissoc interval-key)))))
 
-(defn num-input [key]
+(defn num-input [key interval-key]
   [:span.col>input.form-control
-    {:value (key @(rf/subscribe [:config]))
+    {:value (get-in @(rf/subscribe [:config]) [key interval-key])
      :on-change (fn [evt]
-                  (rf/dispatch [:set-config key evt.target.value]))}])
+                  (rf/dispatch [:set-config key interval-key evt.target.value]))}])
 
-(defn text-editor [label min-key max-key]
+(defn range-editor [label key]
   [:span.row.align-items-center
    [:span.col>label.mr-3 label]
-   [num-input min-key]
+   [num-input key :min]
    [:span.col-auto
     "to"]
-   [num-input max-key]])
+   [num-input key :max]])
 
 (rf/reg-event-db :generate-hand
                  (fn [db [_ config]]
                    (assoc db :hands (random-hands config))))
 
 (defn deal-generator []
-  (let [config @(rf/subscribe [:config])]
+  (let [config @(rf/subscribe [:inferred-config])]
+    (println "inferred config:" config)
     [:div
-     [text-editor "HCP S"   :min-hcp-s  :max-hcp-s]
-     [text-editor "HCP N"   :min-hcp-n  :max-hcp-n]
-     [text-editor "HCP N/S" :min-hcp-ns :max-hcp-ns]
-     [:button.btn.btn-link
-      {:on-click (fn []
-                   (rf/dispatch [:generate-hand config]))}
-      "Generate deal"]]))
+     [range-editor "HCP S"   :hcp-s]
+     [range-editor "HCP N"   :hcp-n]
+     [range-editor "HCP N/S" :hcp-ns]
+     (if config
+       [:button.btn.btn-link
+        {:on-click (fn []
+                     (rf/dispatch [:generate-hand config]))}
+        "Generate deal"]
+       [:div.mt-2.alert.alert-danger "Illegal configuration"])]))
 
 (defn page []
   [:div.container

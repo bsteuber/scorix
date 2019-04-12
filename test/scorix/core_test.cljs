@@ -259,14 +259,12 @@
            13))))
 
 (deftest pseudo-random-hand
-  (let [[hand remaining] (scorix/pseudo-random-hand scorix/full-deck {:min-hcp 0
-                                                                      :max-hcp 40})]
+  (let [[hand remaining] (scorix/pseudo-random-hand scorix/full-deck {:hcp-range [0 40]})]
     (is hand)
     (is (= 13 (count (apply str hand))))
     (is (= 39 (count remaining)))
     (is (<= 0 (scorix/calc-high-card-points hand) 40)))
-  (let [[hand remaining] (scorix/pseudo-random-hand scorix/full-deck {:min-hcp 25
-                                                                      :max-hcp 25})]
+  (let [[hand remaining] (scorix/pseudo-random-hand scorix/full-deck {:hcp-range [25 25]})]
     (is hand)
     (is (= 13 (count (apply str hand))))
     (is (= 39 (count remaining)))

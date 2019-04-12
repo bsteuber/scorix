@@ -1,5 +1,6 @@
 (ns stubid.core-test
-  (:require-macros [cljs.test :refer [deftest is]])
+  (:require-macros [cljs.test :refer [deftest is]]
+                   [clojure.string :as str])
   (:require [stubid.core :as stu :refer [spades hearts diamonds clubs no-trump]]))
 
 (deftest no-bids-yet
@@ -27,3 +28,15 @@
          [1]))
   (is (= (stu/find-best-suits ["82" "AJT98" "9" "KQT32"] [1 3])
          [1 3])))
+
+(deftest intervals
+  (is (= (stu/interval-restrict [3 29] [5 35])
+         [5 29]))
+  (is (= (stu/interval+ [3 29] [5 35])
+         [8 64]))
+  (is (= (stu/interval- [15 25] [5 5])
+         [10 20]))
+  (is (= (stu/interval- [15 25] [0 0])
+         [15 25]))
+  (is (= (stu/interval- [15 15] [0 5])
+         [10 15])))

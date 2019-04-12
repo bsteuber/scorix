@@ -43,8 +43,9 @@
 
 (def score-card-info (comp card-score format-card second))
 
-(defn pseudo-random-hand [deck {:keys [min-hcp max-hcp]}]
-  (let [sorted-deck                (sort-by second deck)
+(defn pseudo-random-hand [deck {:keys [hcp-range]}]
+  (let [[min-hcp max-hcp]          hcp-range
+        sorted-deck                (sort-by second deck)
         min-available-hcp          (->> sorted-deck
                                         (take-last 13)
                                         (map score-card-info)

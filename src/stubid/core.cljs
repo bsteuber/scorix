@@ -336,3 +336,22 @@
 
 (defmethod eval-rule :nt-distribution? [{:keys [hand]}]
   (nt-hand? hand))
+
+(defn ->interval [{:keys [min max]}]
+  [(or min 0) (or max 40)])
+
+(defn check-interval [[x-min x-max]]
+  (when-not (<= x-min x-max)
+    (throw "Impossible interval configuration")))
+
+(defn interval-restrict [[x-min x-max] [y-min y-max]]
+  [(max x-min y-min)
+   (min x-max y-max)])
+
+(defn interval+ [[x-min x-max] [y-min y-max]]
+  [(+ x-min y-min)
+   (+ x-max y-max)])
+
+(defn interval- [[x-min x-max] [y-min y-max]]
+  [(- x-min y-max)
+   (- x-max y-min)])
