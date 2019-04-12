@@ -1,5 +1,6 @@
 (ns stubid.main
   (:require [reagent.core :as r]
+            [re-frame.core :as rf]
             [stubid.ui :as ui]))
 
 (enable-console-print!)
@@ -11,4 +12,5 @@
 (defn ^:export reload []
   (println "reloaded")
   (js/console.clear)
+  (rf/clear-subscription-cache!)
   (run))

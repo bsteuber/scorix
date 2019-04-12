@@ -192,7 +192,7 @@
           [0.25 :A-T-count 3]
           [0.5 :length "ATxx"]
           [1 :length "QJT8x"]
-          [0.25 :T-9-count-in-SA 3]]))
+          [0.25 :T-9-count-in-NT 3]]))
   (is (= (scorix/no-trump-points
           ["ATx"  "QJT9x" "JTxx"  "xx"]
           [:right :left   :right  :partner])
@@ -201,7 +201,7 @@
           [1 :length "QJT9x"]
           [-0.5 :gap-in-left-suit "QJT"]
           [-0.5 :length-in-opponent-suit "QJT9x"]
-          [0.5 :T-9-count-in-SA 4]
+          [0.5 :T-9-count-in-NT 4]
           [0.5 :QJT9-or-QJT9-in-opponent-suit-in-NT "QJT9"]
           [0.25 :JTxx-or-J9xx-in-right-opponent-suit-in-NT "JTxx"]]))
   (is (= (scorix/no-trump-points
@@ -222,7 +222,7 @@
           [0.5 :length "AJxx"]
           [0.5 :length "AKJx"]
           [0.5 :partner-suit-honors 1]
-          [-0.5 :T-9-count-in-SA 0]])))
+          [-0.5 :T-9-count-in-NT 0]])))
 
 (deftest trump-points
   (is (= (scorix/trump-points
@@ -257,3 +257,17 @@
            4))
     (is (= (count (apply str hand))
            13))))
+
+(deftest pseudo-random-hand
+  (let [[hand remaining] (scorix/pseudo-random-hand scorix/full-deck {:min-hcp 0
+                                                                      :max-hcp 40})]
+    (is hand)
+    (is (= 13 (count (apply str hand))))
+    (is (= 39 (count remaining)))
+    (is (<= 0 (scorix/calc-high-card-points hand) 40)))
+  (let [[hand remaining] (scorix/pseudo-random-hand scorix/full-deck {:min-hcp 25
+                                                                      :max-hcp 25})]
+    (is hand)
+    (is (= 13 (count (apply str hand))))
+    (is (= 39 (count remaining)))
+    (is (<= 25 (scorix/calc-high-card-points hand) 25))))

@@ -64,30 +64,47 @@
             (fn [db _]
               (:config db)))
 
-(defn random-hands []
+(defn random-hands [config]
   (let [{:keys [min-hcp-n
                 min-hcp-s
-                min-hcp-ns]
+                min-hcp-ns
+                max-hcp-n
+                max-hcp-s
+                max-hcp-ns]
          :or   {min-hcp-n  0
                 min-hcp-s  0
-                min-hcp-ns 0}
-         :as config} @(rf/subscribe [:config])]
-    (loop [tries 0]
-      (if (> tries 10000)
-        (js/alert "Couldn't find valid deal")
-        (let [deal   (scorix/random-deal)
-              hcp-n  (scorix/calc-high-card-points (nth deal 0))
-              hcp-s  (scorix/calc-high-card-points (nth deal 3))
-              hcp-ns (+ hcp-n hcp-s)]
-          (if (and
-               (or (not min-hcp-n)
-                   (>= hcp-n min-hcp-n))
-               (or (not min-hcp-s)
-                   (>= hcp-s min-hcp-s))
-               (or (not min-hcp-ns)
-                   (>= hcp-ns min-hcp-ns)))
-            (vec deal)
-            (recur (inc tries))))))))
+                min-hcp-ns 0
+                max-hcp-n  40
+                max-hcp-s  40
+                max-hcp-ns 40}} config
+        min-hcp-ns              (max min-hcp-ns
+                                     (+ min-hcp-n
+                                        min-hcp-s))
+        max-hcp-ns              (min max-hcp-ns
+                                     (+ max-hcp-n
+                                        max-hcp-s))
+        start-n?                (<= (- max-hcp-n
+                                       min-hcp-n)
+                                    (- max-hcp-s
+                                       min-hcp-s))
+        [hand-1-min hand-1-max] (if start-n?
+                                  [min-hcp-n max-hcp-n]
+                                  [min-hcp-s max-hcp-s])
+        [hand-1 remaining-1]    (scorix/pseudo-random-hand
+                                 scorix/full-deck {:min-hcp hand-1-min
+                                                   :max-hcp hand-1-max})
+        hcp-1                   (scorix/calc-high-card-points hand-1)
+        hand-2-min              (max 0 (- min-hcp-ns hcp-1))
+        hand-2-max              (- max-hcp-ns hcp-1)
+        [hand-2 remaining-2]    (scorix/pseudo-random-hand
+                                 remaining-1 {:min-hcp hand-2-min
+                                              :max-hcp hand-2-max})
+        [hand-3 hand-4]         (->> remaining-2
+                                     (split-at 13)
+                                     (map scorix/format-hand))]
+    (if start-n?
+      [hand-1 hand-3 hand-4 hand-2]
+      [hand-2 hand-3 hand-4 hand-1])))
 
 (defn bid-order []
   (case @(rf/subscribe [:current-dealer])
@@ -212,29 +229,39 @@
 (rf/reg-event-db
  :set-config
  (fn [db [_ key value]]
-   (assoc-in db [:config key] (let [parsed (js/parseInt value)]
-                                (when (js/Number.isInteger parsed)
-                                  parsed)))))
+   (let [parsed (js/parseInt value)]
+     (if (js/Number.isInteger parsed)
+       (assoc-in db [:config key] parsed)
+       (update db :config dissoc key)))))
 
-(defn text-editor [label key]
-  [:span.row
-   [:span.col>label.mr-3 label]
-   [:span.col>input.form-control
+(defn num-input [key]
+  [:span.col>input.form-control
     {:value (key @(rf/subscribe [:config]))
      :on-change (fn [evt]
-                  (rf/dispatch [:set-config key evt.target.value]))}]])
+                  (rf/dispatch [:set-config key evt.target.value]))}])
+
+(defn text-editor [label min-key max-key]
+  [:span.row.align-items-center
+   [:span.col>label.mr-3 label]
+   [num-input min-key]
+   [:span.col-auto
+    "to"]
+   [num-input max-key]])
 
 (rf/reg-event-db :generate-hand
-                 (fn [db _]
-                   (assoc db :hands (random-hands))))
+                 (fn [db [_ config]]
+                   (assoc db :hands (random-hands config))))
 
 (defn deal-generator []
-  [:div
-   [text-editor "Min HCP N/S" :min-hcp-ns]
-   [text-editor "Min HCP N"   :min-hcp-n]
-   [text-editor "Min HCP S"   :min-hcp-s]
-   [:button.btn.btn-link {:on-click (fn [] (rf/dispatch [:generate-hand]))}
-    "Generate deal"]])
+  (let [config @(rf/subscribe [:config])]
+    [:div
+     [text-editor "HCP S"   :min-hcp-s  :max-hcp-s]
+     [text-editor "HCP N"   :min-hcp-n  :max-hcp-n]
+     [text-editor "HCP N/S" :min-hcp-ns :max-hcp-ns]
+     [:button.btn.btn-link
+      {:on-click (fn []
+                   (rf/dispatch [:generate-hand config]))}
+      "Generate deal"]]))
 
 (defn page []
   [:div.container

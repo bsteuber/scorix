@@ -1,27 +1,12 @@
 (ns scorix.core
   (:require [clojure.string :as str]))
 
-(defn random-deal []
-  (let [deck (for [suit (range 4)
-                   val (range 13)]
-               [suit val])
-        format-card (partial get "AKQJT98xxxxxx")]
-    (->> deck
-         shuffle
-         (partition 13)
-         (map (fn [hand]
-                (->> hand
-                     sort
-                     (partition-by first)
-                     (map (fn [suit]
-                            (->> suit
-                                 (map (fn [card]
-                                        (format-card (second card))))
-                                 (apply str))))
-                     vec))))))
+(def full-deck
+  (for [suit (range 4)
+        val (range 13)]
+    [suit val]))
 
-(defn random-hand []
-  (first (random-deal)))
+(def format-card (partial get "AKQJT98xxxxxx"))
 
 (defn card-score [card]
   (case card
@@ -31,18 +16,89 @@
     "J" 1
     0))
 
+(defn format-hand [hand]
+  (let [by-suit (->> hand
+                     (group-by first)
+                     (map (fn [[suit cards]]
+                            [suit (->> cards
+                                       sort
+                                       (map (comp format-card second))
+                                       (apply str))]))
+                     (into {})
+                     (merge {0 ""
+                             1 ""
+                             2 ""
+                             3 ""}))]
+    (mapv by-suit (range 4))))
+
 (defn sum [f coll]
   (->> coll
        (map f)
        (reduce +)))
 
-(defn score [results]
-  (sum first results))
-
 (defn calc-high-card-points [hand]
   (->> hand
        (apply concat)
        (sum card-score)))
+
+(def score-card-info (comp card-score format-card second))
+
+(defn pseudo-random-hand [deck {:keys [min-hcp max-hcp]}]
+  (let [sorted-deck                (sort-by second deck)
+        min-available-hcp          (->> sorted-deck
+                                        (take-last 13)
+                                        (map score-card-info)
+                                        (reduce +))
+        max-available-hcp          (->> sorted-deck
+                                        (take 13)
+                                        (map score-card-info)
+                                        (reduce +))
+        shuffled-deck              (shuffle deck)
+        [init-hand init-remaining] (split-at 13 shuffled-deck)]
+    (when-not (and (<= min-hcp max-available-hcp)
+                   (>= max-hcp min-available-hcp))
+      (throw "Impossible to generate hand"))
+    (loop [tries     0
+           hand      init-hand
+           remaining init-remaining]
+      (let [hcp       (calc-high-card-points (format-hand hand))
+            too-low?  (< hcp min-hcp)
+            too-high? (> hcp max-hcp)]
+        (when (> tries 100)
+          (throw "Impossible to find better card"))
+        (if (or too-low? too-high?)
+          (let [drop-card    (rand-nth hand)
+                comparator   (if too-low?
+                               >
+                               <)
+                better-cards (filter (fn [card]
+                                       (comparator
+                                        (score-card-info card)
+                                        (score-card-info drop-card)))
+                                     remaining)]
+            (if (seq better-cards)
+              (let [draw-card      (rand-nth better-cards)
+                    next-hand      (->> hand
+                                        (remove #{drop-card})
+                                        (cons draw-card))
+                    next-remaining (->> remaining
+                                        (remove #{draw-card})
+                                        (cons drop-card))]
+                (recur 0 next-hand next-remaining))
+              (recur (inc tries) hand remaining)))
+          [(format-hand hand) remaining])))))
+
+(defn random-deal []
+  (->> full-deck
+       shuffle
+       (partition 13)
+       (map format-hand)))
+
+(defn random-hand []
+  (first (random-deal)))
+
+(defn score [results]
+  (sum first results))
 
 (defn high-card-points [hand]
   (let [points (calc-high-card-points hand)]

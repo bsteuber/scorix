@@ -172,12 +172,13 @@
    [:= :partner-level 2]])
 
 (def cont-2nt
-  [:cond
-   [:>= [:longest-length :diamonds-or-higher] 5]
-   [:bid-match? 3 [:highest-longest :diamonds-or-higher]]
+  [:and [:>= :gp 3]
+   [:cond
+    [:>= [:longest-length :diamonds-or-higher] 5]
+    [:bid-match? 3 [:highest-longest :diamonds-or-higher]]
 
-   :else
-   [:bid-match? 3 clubs]])
+    :else
+    [:bid-match? 3 clubs]]])
 
 (def responses
   [:and
@@ -240,11 +241,69 @@
 (def cont-1nt-2c-2d
   [:bid-match? 2 hearts])
 
+(def bids-1nt-2d-2nt?
+  [:bids-match?
+   [:partner 1 no-trump]
+   [:me 2 diamonds]
+   [:partner 2 no-trump]])
+
+(def cont-1nt-2d-2nt
+  [:cond
+   [:>= [:longest-length :diamonds-or-higher] 5]
+   [:bid-match? 3 [:highest-longest :diamonds-or-higher]]
+
+   :else
+   [:bid-match? 3 clubs]])
+
+(def bids-1nt-2d-2nt-3c?
+  [:bids-match?
+   [:me 1 no-trump]
+   [:partner 2 diamonds]
+   [:me 2 no-trump]
+   [:partner 3 clubs]])
+
+(def cont-1nt-2d-2nt-3c
+  [:cond
+   [:>= [:longest-length :diamonds-or-higher] 4]
+   [:bid-match? 3 [:lowest-longest :diamonds-or-higher]]])
+
+(def bids-1nt-2c-2nt?
+  [:bids-match?
+   [:partner 1 no-trump]
+   [:me 2 clubs]
+   [:partner 2 no-trump]])
+
+(def cont-1nt-2c-2nt
+  [:and [:>= :gp 1]
+   [:cond
+    [:>= [:longest-length :diamonds-or-higher] 5]
+    [:bid-match? 3 [:highest-longest :diamonds-or-higher]]
+
+    :else
+    [:bid-match? 3 clubs]]])
+
+(def bids-1nt-2c-2nt-3c?
+  [:bids-match?
+   [:me 1 no-trump]
+   [:partner 2 clubs]
+   [:me 2 no-trump]
+   [:partner 3 clubs]])
+
+(def cont-1nt-2c-2nt-3c
+  [:cond
+   [:>= [:longest-length :diamonds-or-higher] 4]
+   [:bid-match? 3 [:lowest-longest :diamonds-or-higher]]])
+
+
 (def nt-1-continuation
   [:cond
-   bids-1nt-2c?    cont-1nt-2c
-   bids-1nt-2c-2d? cont-1nt-2c-2d
-   bids-1nt-2d?    cont-1nt-2d])
+   bids-1nt-2c?        cont-1nt-2c
+   bids-1nt-2c-2d?     cont-1nt-2c-2d
+   bids-1nt-2c-2nt?    cont-1nt-2c-2nt
+   bids-1nt-2c-2nt-3c? cont-1nt-2c-2nt-3c
+   bids-1nt-2d?        cont-1nt-2d
+   bids-1nt-2d-2nt?    cont-1nt-2d-2nt
+   bids-1nt-2d-2nt-3c? cont-1nt-2d-2nt-3c])
 
 (def bids-2nt-3c?
   [:bids-match?
