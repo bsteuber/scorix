@@ -172,9 +172,9 @@
         prev-bids
         (let [hand @(rf/subscribe [:get-player-hand player])
               prev (prev-bids-for-player player prev-bids)
-              bids (sc/bids hand prev)]
-          (recur (conj prev-bids {:player (player-key player)
-                                  :bid (first bids)})
+              bid (sc/make-bid hand prev)]
+          (recur (conj prev-bids  {:player (player-key player)
+                                   :bid bid})
                  (next-player player)))))))
 
 (defn format-bid [[level suit]]
@@ -269,7 +269,6 @@
 
 (defn deal-generator []
   (let [config @(rf/subscribe [:inferred-config])]
-    (println "inferred config:" config)
     [:div
      [range-editor "HCP S"   :hcp-s]
      [range-editor "HCP N"   :hcp-n]
