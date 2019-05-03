@@ -1,71 +1,92 @@
 (ns stubid.schachcafe
-  #_(:require [stubid.core :as stu :refer [spades hearts diamonds clubs no-trump]]))
+  (:require [stubid.core :as stu :refer [spades hearts diamonds clubs no-trump
+                                         minors majors gp suit-length]]
+            [clojure.string :as str]))
 
-;; (def weak-minor-5?
-;;   [:and
-;;    [:>= :longest-minor-length 9]
-;;    [:<= :gp 14]])
+(defn weak-minor-5 []
+  (for [suit minors]
+    [[:and
+      [:>= (suit-length suit) 9]
+      [:<= (gp) 14]]
+     [:bid 5 suit]]))
 
-;; (def weak-major-4?
-;;   [:and
-;;    [:>= :longest-major-length 8]
-;;    :major?
-;;    [:<= :gp 14]])
+(defn weak-major-4 []
+  (for [suit stu/majors]
+    [[:and
+      [:>= (suit-length suit) 8]
+      [:<= (gp) 14]]
+     [:bid 4 suit]]))
 
-;; (def weak-minor-4?
-;;   [:and
-;;    [:= :longest-minor-length 8]
-;;    [:<= :gp 12]])
+(defn weak-minor-4 []
+  (for [suit stu/minors]
+    [[:and
+      [:= (suit-length suit) 8]
+      [:<= (gp) 12]]
+     [:bid 4 suit]]))
 
-;; (def weak-3?
-;;   [:and
-;;    [:= :longest-length 7]
-;;    [:<= 8 :gp 12]])
+(defn weak-3 []
+  (for [suit stu/suits]
+    [[:and
+      [:= (suit-length suit) 7]
+      [:>= (gp) 8]
+      [:<= (gp) 12]]
+     [:bid 3 suit]]))
 
-;; (def weak-2?
-;;   [:and
-;;    [:= :longest-length 6]
-;;    [:<= 8 :gp 12]])
+(defn weak-2 []
+  (for [suit (reverse stu/suits)]
+    [[:and
+      [:= (suit-length suit) 6]
+      [:>= (gp) 8]
+      [:<= (gp) 12]]
+     [:bid 2 suit]]))
 
-;; (def suit-1?
-;;   [:<= 13 :gp 20])
+(defn suit-1 []
+  [[:>= (gp) 13]
+   [:cond
+    (for [suit (reverse stu/suits)]
+      [[:>= (suit-length suit) 5]
+       [:bid 1 suit]])
+    [:distribution-4441?
+     [:cond
+      (for [suit stu/minors]
+        [[:>= (suit-length suit) 4]
+         [:bid 1 suit]])]]
+    [:majors-44?
+     [:bid 1 hearts]]
+    (for [suit stu/suits]
+      [[:and
+        [:>= (suit-length suit) 4]
+        [:best-longest-suit? suit]]
+       [:bid 1 suit]])]])
 
-;; (def suit-1-openings
-;;   [:cond
-;;    [:>= :longest-suit-length 5] [:bid 1 :highest-longest-suit]
-;;    :distribution-4441?          [:bid 1 :lowest-best-longest-minor]
-;;    :majors-44?                  [:bid 1 hearts]
-;;    :else                        [:bid 1 :lowest-best-longest-suit]])
-
-;; (def suit-openings
-;;   [:cond
-;;    weak-minor-5? [:bid 5 :highest-best-longest-suit]
-;;    weak-major-4? [:bid 4 :highest-best-longest-suit]
-;;    weak-minor-4? [:bid 4 :highest-best-longest-suit]
-;;    weak-3?       [:bid 3 :highest-best-longest-suit]
-;;    weak-2?       [:bid 2 :highest-best-longest-suit]
-;;    suit-1?       suit-1-openings
-;;    :else         :pass])
+(defn suit-openings []
+  [:cond
+   (weak-minor-5)
+   (weak-major-4)
+   (weak-minor-4)
+   (weak-3)
+   (weak-2)
+   (suit-1)
+   [:else
+    :pass]])
 
 ;; (def nt-2?
 ;;   [:and
-;;    [:<= 21 :gp 22]
+;;    [:<= 21 (gp) 22]
 ;;    :nt-distribution?])
 
 ;; (def nt-1?
-;;   [:>= :gp 21])
+;;   [:>= (gp) 21])
 
 ;; (def nt-openings
 ;;   [:cond
 ;;    nt-2? [:bid 2 no-trump]
 ;;    nt-1? [:bid 1 no-trump]])
 
-;; (def openings
-;;   [:and
-;;    :opening?
-;;    [:cond
-;;     [:color? :suit] suit-openings
-;;     [:nt? :suit]    nt-openings]])
+(defn openings []
+  [:or
+   #_nt-openings
+   (suit-openings)])
 
 ;; (def bids-1suit?
 ;;   [:and [:= :last-partner-level 1] [:color? :last-partner-suit]])
@@ -91,7 +112,7 @@
 ;;    yp-12+?   [:bid 2 no-trump]])
 
 ;; (def can-respond?
-;;   [:>= :gp 5])
+;;   [:>= (gp) 5])
 
 ;; (def level-1-new-suit?
 ;;   [:>= [:length-over-suit :partner-suit] 4])
@@ -104,7 +125,7 @@
 
 ;; (def level-2-new-suit?
 ;;   [:and
-;;    [:>= :gp 10]
+;;    [:>= (gp) 10]
 ;;    [:>= [:length-under-suit :partner-suit] 4]])
 
 ;; (def level-2-new-suit-responses
@@ -115,7 +136,7 @@
 
 ;; (def level-1-nt?
 ;;   [:and
-;;    [:<= :gp 9]])
+;;    [:<= (gp) 9]])
 
 ;; (def level-1-nt-response
 ;;   [:and [:nt? :suit] [:= :level 1]])
@@ -144,7 +165,7 @@
 ;;   [:and
 ;;    [:= :level 2]
 ;;    [:cond
-;;     [:<= :gp 3]        [:= :suit clubs]
+;;     [:<= (gp) 3]        [:= :suit clubs]
 ;;     :biddable-major-5+ nt-1-major-responses
 ;;     :else              [:= :suit diamonds]]])
 
@@ -154,7 +175,7 @@
 ;;    [:= :partner-level 2]])
 
 ;; (def cont-2nt
-;;   [:and [:>= :gp 3]
+;;   [:and [:>= (gp) 3]
 ;;    [:cond
 ;;     [:>= [:longest-length :diamonds-or-higher] 5]
 ;;     [:bid-match? 3 [:highest-longest :diamonds-or-higher]]
@@ -177,7 +198,7 @@
 
 ;; (def cont-1nt-2c
 ;;   [:cond
-;;    [:>= :gp 25]
+;;    [:>= (gp) 25]
 ;;    [:and [:= :level 2] [:= :suit diamonds]]
 
 ;;    [:>= [:length-in spades] 5]
@@ -192,7 +213,7 @@
 ;;    [:>= [:length-in clubs] 5]
 ;;    [:bid-match? 3 clubs]
 
-;;    [:and [:<= 23 :gp 24] :nt-distribution?]
+;;    [:and [:<= 23 (gp) 24] :nt-distribution?]
 ;;    [:bid-match? 2 no-trump]
 
 ;;    :else
@@ -256,7 +277,7 @@
 ;;    [:partner 2 no-trump]])
 
 ;; (def cont-1nt-2c-2nt
-;;   [:and [:>= :gp 1]
+;;   [:and [:>= (gp) 1]
 ;;    [:cond
 ;;     [:>= [:longest-length :diamonds-or-higher] 5]
 ;;     [:bid-match? 3 [:highest-longest :diamonds-or-higher]]
@@ -308,8 +329,6 @@
 ;;    nt-1-continuation
 ;;    nt-2-continuation])
 
-;; (defn make-bid
-;;   ([hand]
-;;    (make-bid hand []))
-;;   ([hand prev-bids]
-;;    (stu/apply-rule rules hand prev-bids)))
+(defn system []
+  (cond
+    (stu/opening?) (openings)))

@@ -1,63 +1,68 @@
 (ns stubid.schachcafe-test
   (:require-macros [cljs.test :refer [deftest is]])
-  (:require [stubid.core :as s]
+  (:require [stubid.core :as stu :refer [clubs diamonds hearts spades no-trump]]
             [stubid.schachcafe :as sc]))
 
+(defn opening-bid [hand]
+  (stu/make-bid sc/system
+                {:hand hand
+                 :player 0}))
+
 ;; (deftest pass-hands
-;;   (is (= :pass (sc/make-bid ["82" "AJT98" "9" "KQT32"]))))
+;;   (is (= :pass (opening-bid ["82" "AJT98" "9" "KQT32"]))))
 
 ;; (deftest minor-5-opening
-;;   (is (= (sc/make-bid ["86" "9" "AJ9865432" "5"])
+;;   (is (= (opening-bid ["86" "9" "AJ9865432" "5"])
 ;;          [5 diamonds]))
-;;   (is (= (sc/make-bid ["86" "9" "5" "KT9865432"])
+;;   (is (= (opening-bid ["86" "9" "5" "KT9865432"])
 ;;          [5 clubs])))
 
 ;; (deftest major-4-opening
-;;   (is (= (sc/make-bid ["9" "AJ9865432" "86" "5"])
+;;   (is (= (opening-bid ["9" "AJ9865432" "86" "5"])
 ;;          [4 hearts]))
-;;   (is (= (sc/make-bid ["KT986543" "863" "9" "5"])
+;;   (is (= (opening-bid ["KT986543" "863" "9" "5"])
 ;;          [4 spades])))
 
 ;; (deftest minor-4-opening
-;;   (is (= (sc/make-bid ["86" "9" "AJ986543" "52"])
+;;   (is (= (opening-bid ["86" "9" "AJ986543" "52"])
 ;;          [4 diamonds]))
-;;   (is (= (sc/make-bid ["86" "Q9" "5" "KT965432"])
+;;   (is (= (opening-bid ["86" "Q9" "5" "KT965432"])
 ;;          [4 clubs])) )
 
 ;; (deftest weak-3-opening
-;;   (is (= (sc/make-bid ["9" "AKJ9854" "8632" "5"])
+;;   (is (= (opening-bid ["9" "AKJ9854" "8632" "5"])
 ;;          [3 hearts]))
-;;   (is (= (sc/make-bid ["AKT9854" "863" "J9" "5"])
+;;   (is (= (opening-bid ["AKT9854" "863" "J9" "5"])
 ;;          [3 spades])))
 
 ;; (deftest weak-2-opening
-;;   (is (= (sc/make-bid ["94" "AK9854" "8632" "5"])
+;;   (is (= (opening-bid ["94" "AK9854" "8632" "5"])
 ;;          [2 hearts]))
-;;   (is (= (sc/make-bid ["AKT985" "T863" "J9" "5"])
+;;   (is (= (opening-bid ["AKT985" "T863" "J9" "5"])
 ;;          [2 spades])))
 
-;; (deftest suit-1-opening
-;;   (is (= (sc/make-bid ["AJ943" "AK98" "862" "5"])
-;;          [1 spades]))
-;;   (is (= (sc/make-bid ["AJ94" "AK98" "863" "52"])
-;;          [1 hearts]))
-;;   (is (= (sc/make-bid ["AJ94" "AK98" "8632" "5"])
-;;          [1 diamonds]))
-;;   (is (= (sc/make-bid ["AJ94" "863" "AK98" "52"])
-;;          [1 diamonds]))
-;;   (is (= (sc/make-bid ["AK94" "863" "AJ98" "52"])
-;;          [1 spades]))
-;;   (is (= (sc/make-bid ["AK94" "863" "AK98" "52"])
-;;          [1 diamonds])))
+(deftest suit-1-opening
+  (is (= (opening-bid ["AJ943" "AK98" "862" "5"])
+         [1 spades]))
+  (is (= (opening-bid ["AK94" "A986" "Q63" "52"])
+         [1 hearts]))
+  (is (= (opening-bid ["AJ94" "AK98" "8632" "5"])
+         [1 diamonds]))
+  (is (= (opening-bid ["AJ94" "863" "AK98" "52"])
+         [1 diamonds]))
+  (is (= (opening-bid ["AK94" "863" "AJ98" "52"])
+         [1 spades]))
+  (is (= (opening-bid ["AK94" "863" "AK98" "52"])
+         [1 diamonds])))
 
 ;; (deftest nt-2-opening
-;;   (is (= (sc/make-bid ["AJ94" "AK98" "A86" "A1"])
+;;   (is (= (opening-bid ["AJ94" "AK98" "A86" "A1"])
 ;;          [2 no-trump])))
 
 ;; (deftest nt-1-opening
-;;   (is (= (sc/make-bid ["AJ94" "AK98" "AK6" "A1"])
+;;   (is (= (opening-bid ["AJ94" "AK98" "AK6" "A1"])
 ;;          [1 no-trump]))
-;;   (is (= (sc/make-bid ["AJ94" "AK98" "AJ62" "A"])
+;;   (is (= (opening-bid ["AJ94" "AK98" "AJ62" "A"])
 ;;          [1 no-trump])))
 
 ;; (deftest suit-1-responses

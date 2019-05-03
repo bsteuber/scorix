@@ -12,5 +12,6 @@
    (test-display/init! "app")
    ;; 'scorix.core-test
    ;; 'stubid.core-test
-   ;; 'stubid.schachcafe-test
-   'stubid.constraints-test))
+   'stubid.schachcafe-test
+   'stubid.constraints-test
+   ))
