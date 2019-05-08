@@ -1,5 +1,14 @@
 (ns stubid.constraints)
 
+(def debug-intervals? false)
+(def debug-restrictor? false)
+
+(def current-steps-state (atom 0))
+(def max-steps 200000)
+
+(defn current-steps []
+  @current-steps-state)
+
 (defrecord Unsolvable [])
 
 (defn fail []
@@ -78,6 +87,11 @@
            :rule rule)))
 
 (defn restrict-intervals [intervals restrictions]
+  (when (> (current-steps) max-steps)
+    (throw "Max steps exceeded"))
+  (swap! current-steps-state inc)
+  (when debug-intervals?
+    (println "restrict-intervals" intervals restrictions))
   (try
     (->> restrictions
          (remove (fn [[k v]]
@@ -92,11 +106,9 @@
     (if-let [restrict-fn (:restrict rule)]
       (restrict-fn
        intervals
-       (fn [restrictions]
-         (when restrictions
-           (when-let [new-intervals (restrict-intervals intervals
-                                                        restrictions)]
-             (cc new-intervals)))))
+       (fn [intervals]
+         (when intervals
+           (cc intervals))))
       (cc intervals))
     (catch Unsolvable _
       nil)))
@@ -145,15 +157,41 @@
 (defmethod negate-rule :<= [[_ x y]]
   [:> x y])
 
+(defmethod negate-rule :< [[_ x y]]
+  [:>= x y])
+
+(defmethod negate-rule :>= [[_ x y]]
+  [:< x y])
+
+(defmethod negate-rule :> [[_ x y]]
+  [:<= x y])
+
+(defmethod negate-rule :not [[_ rule]]
+  rule)
+
+(defmethod negate-rule :and [[_ & rules]]
+  [:or
+   (for [rule rules]
+     [:not rule])])
+
+(defmethod negate-rule :or [[_ & rules]]
+  [:and
+   (for [rule rules]
+     [:not rule])])
+
 (defmethod parse-rule :not [_ [arg]]
   (build-rule (negate-rule (normalize-rule arg))))
 
 (defmethod parse-rule :or [_ args]
-  (let [rules (map build-rule args)]
+  (let [rules (->> args
+                   (map build-rule)
+                   (sort-by (comp count :vars)))]
     {:vars (mapcat :vars rules)
      :restrict (fn [intervals cc]
                  (->> rules
                       (some (fn [rule]
+                              (when debug-restrictor?
+                                (println "OR: try" (:rule rule)))
                               (restrict-rule rule intervals cc)))))
      :check (fn [solution cc]
               (->> rules
@@ -161,15 +199,20 @@
                            (check-rule rule solution cc)))))}))
 
 (defmethod parse-rule :and [_ args]
-  (let [rules (map build-rule args)]
+  (let [rules (->> args
+                   (map build-rule)
+                   (sort-by (comp count :vars)))]
     {:vars (mapcat :vars rules)
      :restrict (fn [intervals cc]
                  (let [build (fn build [intervals [rule & more-rules] cc]
                                (if-not rule
                                  (cc intervals)
-                                 (restrict-rule rule intervals
-                                                (fn [intervals]
-                                                  (build intervals more-rules cc)))))]
+                                 (do
+                                   (when debug-restrictor?
+                                     (println "AND: try" (:rule rule)))
+                                   (restrict-rule rule intervals
+                                                  (fn [intervals]
+                                                    (build intervals more-rules cc))))))]
                    (build intervals rules cc)))
      :check (fn [solution cc]
               (let [build (fn build [[rule & more-rules] cc]
@@ -300,7 +343,11 @@
     [:= :bid-suit 0]]))
 
 (defn run-restrictions [orig-intervals rule cc]
+  (when debug-restrictor?
+    (println "run-restrictions"))
   (let [run-rec (fn run-rec [intervals cc]
+                  (when debug-restrictor?
+                    (println "run-rec"))
                   (restrict-rule rule intervals
                                  (fn [new-intervals]
                                    (if (= intervals new-intervals)
@@ -317,6 +364,7 @@
     (keyword? rule) [rule]))
 
 (defn run-restrictor [rule-vector]
+  (reset! current-steps-state 0)
   (let [rule (build-rule rule-vector)
         vars (->> rule
                   :vars
@@ -324,15 +372,11 @@
         intervals (zipmap vars (repeat (interval)))]
     (run-restrictions intervals rule identity)))
 
-(def max-tries 20)
-
-(def current-tries (atom 0))
-
 (defn run-solver
   ([rule-vector]
    (run-solver rule-vector {}))
   ([rule-vector intervals]
-   (reset! current-tries 0)
+   (reset! current-steps-state 0)
    (let [rule (build-rule rule-vector)
          vars (->> (:vars rule)
                    (remove constant?)
@@ -341,30 +385,26 @@
                           intervals)
          rec-solve (fn rec-solve [[next-var & more-vars] intervals cc]
                      (if next-var
-                       (run-restrictions
-                        intervals
-                        rule
-                        (fn [intervals]
-                          (let [possible-values (interval-values
-                                                 (get-interval intervals next-var))]
-                            (if (> (count possible-values) 1)
-                              (some (fn [x]
-                                      (when (> @current-tries max-tries)
-                                        (throw "Max tries exceeded"))
-                                      (swap! current-tries inc)
-                                      (rec-solve more-vars
-                                                 (restrict-intervals
-                                                  intervals
-                                                  {next-var (interval x x)})
-                                                 cc))
-                                    possible-values)
-                              (rec-solve more-vars
-                                         intervals
-                                         cc)))))
+                       (let [possible-values (interval-values
+                                              (get-interval intervals next-var))]
+                         (if (> (count possible-values) 1)
+                           (some (fn [x]
+                                   (run-restrictions
+                                    (restrict-intervals
+                                     intervals
+                                     {next-var (interval x x)})
+                                    rule
+                                    (fn [intervals]
+                                      (rec-solve more-vars intervals cc))))
+                                 possible-values)
+                           (rec-solve more-vars
+                                      intervals
+                                      cc)))
                        (let [solution (->> intervals
                                            (map (fn [[k v]]
                                                   [k (:min v)]))
                                            (into {}))
                              check-res (check-rule rule solution cc)]
                          check-res)))]
-     (rec-solve vars intervals identity))))
+     (run-restrictions intervals rule (fn [intervals]
+                                        (rec-solve vars intervals identity))))))

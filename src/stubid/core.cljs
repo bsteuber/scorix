@@ -117,14 +117,39 @@
     (let [rule (system)
           solution (c/run-solver [:and
                                   (hand-constraints context)
-                                  rule
-                                  length-constraints])
+                                  length-constraints
+                                  rule])
           {:keys [bid-level bid-suit]} solution
           bid [bid-level bid-suit]]
-      (cljs.pprint/pprint solution)
       (if (= bid [0 0])
         :pass
         bid))))
+
+(defn bid-constraints [bid]
+  (let [[level suit] (if (= bid :pass)
+                       [0 0]
+                       bid)]
+    [:and
+     [:= :bid-level level]
+     [:= :bid-suit suit]]))
+
+(defn bid-implies? [system context bid implication]
+  (binding [*context* context]
+    (let [rule (system)]
+      (if-let [solution-with (c/run-solver [:and
+                                            [:not implication]
+                                            (bid-constraints bid)
+                                            length-constraints
+                                            rule])]
+        (do
+          (println "refutes implication" implication)
+          (cljs.pprint/pprint solution-with))
+        (if (c/run-solver [:and
+                           (bid-constraints bid)
+                           length-constraints
+                           rule])
+          true
+          (throw "System unsolvable before implication"))))))
 
 (defmethod c/parse-rule :best-longest-suit? [_ [suit]]
   (c/build-rule

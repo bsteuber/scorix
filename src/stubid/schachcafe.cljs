@@ -62,9 +62,9 @@
 (defn suit-openings []
   [:cond
    (weak-minor-5)
-   (weak-major-4)
+   ;(weak-major-4)
    (weak-minor-4)
-   (weak-3)
+   ;(weak-3)
    (weak-2)
    (suit-1)
    [:else

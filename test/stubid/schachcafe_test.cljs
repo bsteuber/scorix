@@ -1,6 +1,7 @@
 (ns stubid.schachcafe-test
   (:require-macros [cljs.test :refer [deftest is]])
   (:require [stubid.core :as stu :refer [clubs diamonds hearts spades no-trump]]
+            [stubid.constraints :as c]
             [stubid.schachcafe :as sc]))
 
 (defn opening-bid [hand]
@@ -8,8 +9,21 @@
                 {:hand hand
                  :player 0}))
 
-;; (deftest pass-hands
-;;   (is (= :pass (opening-bid ["82" "AJT98" "9" "KQT32"]))))
+(defn opening-implies? [bid implication]
+  (stu/bid-implies? sc/system
+                    {:player 0}
+                    bid
+                    implication))
+
+#_(deftest pass-hands
+  (is (= :pass (opening-bid ["82" "AJT98" "9" "KQT32"])))
+  (is (= (c/current-steps)
+         1584)))
+
+(deftest opening-pass-implications
+  (is (opening-implies? :pass [:<= [:gp 0] 12]))
+  (is (= (c/current-steps)
+         1584)))
 
 ;; (deftest minor-5-opening
 ;;   (is (= (opening-bid ["86" "9" "AJ9865432" "5"])
@@ -41,19 +55,19 @@
 ;;   (is (= (opening-bid ["AKT985" "T863" "J9" "5"])
 ;;          [2 spades])))
 
-(deftest suit-1-opening
-  (is (= (opening-bid ["AJ943" "AK98" "862" "5"])
-         [1 spades]))
-  (is (= (opening-bid ["AK94" "A986" "Q63" "52"])
-         [1 hearts]))
-  (is (= (opening-bid ["AJ94" "AK98" "8632" "5"])
-         [1 diamonds]))
-  (is (= (opening-bid ["AJ94" "863" "AK98" "52"])
-         [1 diamonds]))
-  (is (= (opening-bid ["AK94" "863" "AJ98" "52"])
-         [1 spades]))
-  (is (= (opening-bid ["AK94" "863" "AK98" "52"])
-         [1 diamonds])))
+;; (deftest suit-1-opening
+;;   (is (= (opening-bid ["AJ943" "AK98" "862" "5"])
+;;          [1 spades]))
+;;   (is (= (opening-bid ["AK94" "A986" "Q63" "52"])
+;;          [1 hearts]))
+;;   (is (= (opening-bid ["AJ94" "AK98" "8632" "5"])
+;;          [1 diamonds]))
+;;   (is (= (opening-bid ["AJ94" "863" "AK98" "52"])
+;;          [1 diamonds]))
+;;   (is (= (opening-bid ["AK94" "863" "AJ98" "52"])
+;;          [1 spades]))
+;;   (is (= (opening-bid ["AK94" "863" "AK98" "52"])
+;;          [1 diamonds])))
 
 ;; (deftest nt-2-opening
 ;;   (is (= (opening-bid ["AJ94" "AK98" "A86" "A1"])
