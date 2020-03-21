@@ -1,6 +1,6 @@
 (defproject scorix "0.1.0-SNAPSHOT"
   :dependencies [[org.clojure/clojure "1.9.0"]
-                 [org.clojure/clojurescript "1.10.339"]
+                 [org.clojure/clojurescript "1.10.597"]
                  [devcards "0.2.5"]
                  [reagent "0.10.0"]
                  [cljsjs/react "16.11.0-0"]

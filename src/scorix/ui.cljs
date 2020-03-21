@@ -316,7 +316,7 @@
    (popup-info [disclaimer] "Limitations of this software")
    [:div.mt-3.mb-2.font-italic
     {:style {:font-size "10px"}}
-    "© 2018 by Benjamin Teuber"]])
+    "© 2018 by Benjamin Teuber; formula/algorithm created by Felix; inspired from „COBRA” by E.T.Lindelöf 1983"]])
 
 (defn page []
   [:div.container
