@@ -55,7 +55,7 @@
                       #"J" -0.75
                       #"T" -0.25
                       #"QJ" -1
-                      #"AK|AKQ|AJ|KQ|KQJ|KJ|QT|JT" -0.5
+                      #"AKQ|AK|AJ|KQJ|KQ|KJ|QT|JT" -0.5
                       #"AKJ|AQJ|AQ|AT|KT|Q.|J.|T." -0.25
                       nil)]
     [[points :blank suit]]))

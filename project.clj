@@ -1,10 +1,12 @@
 (defproject scorix "0.1.0-SNAPSHOT"
   :dependencies [[org.clojure/clojure "1.9.0"]
-                 [org.clojure/clojurescript "1.9.946"]
-                 [devcards "0.2.4"]
-                 [reagent "0.7.0"]]
+                 [org.clojure/clojurescript "1.10.339"]
+                 [devcards "0.2.5"]
+                 [reagent "0.10.0"]
+                 [cljsjs/react "16.11.0-0"]
+                 [cljsjs/react-dom "16.11.0-0"]]
   :plugins [[lein-cljsbuild "1.1.7"]
-            [lein-figwheel "0.5.14"]]
+            [lein-figwheel "0.5.19"]]
   :clean-targets ^{:protect false} ["resources/public/js/compiled"
                                     "target"]
   :cljsbuild

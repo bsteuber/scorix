@@ -1,11 +1,11 @@
 (ns scorix.main
-  (:require [reagent.core :as r]
+  (:require [reagent.dom :as rd]
             [scorix.ui :as ui]))
 
 (enable-console-print!)
 
 (defn ^:export run []
   (when-let [node (.getElementById js/document "container")]
-    (r/render [ui/page] node)))
+    (rd/render [ui/page] node)))
 
 (run)
