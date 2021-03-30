@@ -1,0 +1,14 @@
+{:source-paths ["src" "test"]
+ :dependencies [[com.bhauman/cljs-test-display "0.1.1"]
+                [reagent "0.8.1" :exclusions [cljsjs/react cljsjs/react-dom]]
+                [re-frame "0.10.6"]]
+ :builds       {:scorix  {:output-dir "resources/public/js/compiled"
+                          :asset-path "js/compiled"
+                          :target     :browser
+                          :modules    {:scorix {:init-fn scorix.main/run}}
+                          :devtools   {:after-load scorix.main/reload}}
+                :test {:output-dir "resources/public/js/compiled"
+                       :asset-path "js/compiled"
+                       :target     :browser
+                       :modules    {:test {:init-fn stubid.tests/run}}
+                       :devtools   {:after-load stubid.tests/run}}}}
