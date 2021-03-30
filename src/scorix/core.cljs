@@ -336,6 +336,17 @@
     (when (pos? points)
       [[points :short-non-trump-suits]])))
 
+(defn trump-other-honors-non-negative [hand suit-infos]
+  (let [other-suits (non-trump-suits hand suit-infos)
+        points (->> other-suits
+                    (map (fn [suit]
+                           (case suit
+                             ("J" "QJ" "KQJ") 0.25
+                             0)))
+                    (reduce +))]
+    (when (pos? points)
+      [[points :honors-cant-be-negative]])))
+
 (defn trump-opponent-short-suit [suit info]
   (let [length (count suit)]
     (when (and (<= length 2)
@@ -366,6 +377,7 @@
                   (repeat promised))
           (trump-other-suit-honors hand suit-infos)
           (trump-other-short-suits hand suit-infos)
+          (trump-other-honors-non-negative hand suit-infos)
           (mapcat trump-opponent-short-suit hand suit-infos)
           ;; TODO: partner short suits
           ;; Points minus

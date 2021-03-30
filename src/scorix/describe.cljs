@@ -38,6 +38,7 @@
    :honors-in-non-trump-suits "Honors in non-trump suits"
    :short-non-trump-suits "Short non-trump suits"
    :short-non-trump-opponent-suit format-short-non-trump-opponent-suit
+   :honors-cant-be-negative "Honors can't be negative"
    :trump-basic-correction "Basic correction for suit contracts"})
 
 (def extra-info
@@ -109,6 +110,8 @@
    :short-non-trump-opponent-suit ["Short in an opponent suit -> 0.5"
                                    "Exception: Doubleton in suit bid by right opponent, as left is likely to be short, too."
                                    "If it is clear from the bidding left has at least three cards, you can manually count the 0.5 (not covered in this software)."]
+   :honors-cant-be-negative ["Applying the other rules might need to an honor being worth less than a small card, so we add some correction to make up for it."
+                             "KQJ, QJ, J -> 0.25"]
    :trump-basic-correction ["This substraction is necessary for all suit contracts. It compensates for the many trump honor points, trump suit lengh points, and short other suit points added below"]})
 
 (defn format [[_ key & args]]
